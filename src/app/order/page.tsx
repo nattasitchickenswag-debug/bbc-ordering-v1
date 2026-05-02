@@ -471,8 +471,8 @@ export default function BBCSystemFinal() {
                   >
                     −
                   </button>
-                  <input 
-                    type="text" inputMode="decimal" className="flex-1 bg-transparent text-center text-white font-black outline-none text-xs min-w-0"
+                  <input
+                    type="text" inputMode="numeric" className="flex-1 bg-transparent text-center text-white font-black outline-none text-xs min-w-0"
                     placeholder="สั่ง" value={cart[item.id]?.qty ?? ''}
                     onChange={(e) => updateData(item.id, item.name, item.unit, 'qty', e.target.value)}
                   />
