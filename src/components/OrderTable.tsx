@@ -119,7 +119,8 @@ export default function OrderTable({ branchId, branchName, products }: Props) {
         body: JSON.stringify({
           branchid: branchId,
           branchname: branchName,
-          items: orderItems
+          items: orderItems,
+          orderdate: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }) // 'YYYY-MM-DD HH:mm:ss'
         })
       });
 
