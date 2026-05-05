@@ -233,14 +233,17 @@ export default function BBCSystemFinal() {
     }
   };
 
-  const updateData = (id: string, name: string, unit: string, field: 'qty' | 'stock', val: number) => {
-    setCart(prevCart => {
-      const current = prevCart[id] || { name, unit, qty: 0, stock: 0 };
+  const updateData = (id: string, name: string, unit: string, field: 'qty' | 'stock', val: string) => {
+    // รองรับตัวเลขไทย (๐-๙) และกรองเฉพาะตัวเลข/จุดทศนิยม
+    const normalized = val.replace(/[๐-๙]/g, (d) => String(d.charCodeAt(0) - 0x0E50));
+    const cleanVal = normalized.replace(/[^0-9.]/g, '');
+    setCart((prevCart: any) => {
+      const current = prevCart[id] || { name, unit, qty: "", stock: "" };
       return {
         ...prevCart,
         [id]: {
           ...current,
-          [field]: Math.max(0, isNaN(val) ? 0 : val),
+          [field]: cleanVal,
         },
       };
     });
@@ -251,8 +254,8 @@ export default function BBCSystemFinal() {
     const payload = {
       staffCode,
       branch: selectedBranch.branchName,
-      items: Object.keys(cart).filter(id => cart[id].qty > 0).map(id => ({ 
-        sku: id, name: cart[id].name, qty: cart[id].qty, stock: cart[id].stock 
+      items: Object.keys(cart).filter(id => parseFloat(cart[id].qty) > 0).map(id => ({
+        sku: id, name: cart[id].name, qty: parseFloat(cart[id].qty), stock: parseFloat(cart[id].stock) || 0
       })),
       remark: orderRemark,
       timestamp: new Date().toLocaleString('th-TH')
@@ -298,7 +301,7 @@ export default function BBCSystemFinal() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [activeTab, searchQuery, selectedBranch, menuData, isChicken, isPork, isAdmin]);
 
-  const cartItems = Object.keys(cart).filter(id => cart[id].qty > 0);
+  const cartItems = Object.keys(cart).filter(id => parseFloat(cart[id].qty) > 0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -474,30 +477,30 @@ export default function BBCSystemFinal() {
             <div className="space-y-1">
               <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-200">
                 <span className="text-[8px] font-black text-slate-400 px-0.5 flex-shrink-0">เหลือ:</span>
-                <input 
-                  type="number" inputMode="decimal"
+                <input
+                  type="text" inputMode="decimal"
                   className="w-full bg-transparent text-center font-black text-slate-700 text-[9px] outline-none"
-                  value={cart[item.id]?.stock || ''}
-                  onChange={(e) => updateData(item.id, item.name, item.unit, 'stock', parseFloat(e.target.value))}
+                  value={cart[item.id]?.stock ?? ''}
+                  onChange={(e) => updateData(item.id, item.name, item.unit, 'stock', e.target.value)}
                 />
               </div>
               <div className="flex flex-nowrap items-center bg-[#ea580c] rounded-lg p-1 shadow-md gap-0.5">
                 <button
                   type="button"
-                  onClick={() => updateData(item.id, item.name, item.unit, 'qty', (cart[item.id]?.qty || 0) - 1)}
+                  onClick={() => updateData(item.id, item.name, item.unit, 'qty', String(Math.max(0, (parseFloat(cart[item.id]?.qty) || 0) - 1)))}
                   className="text-white font-black text-base sm:text-lg flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 min-w-[2.25rem] sm:min-w-[2.5rem] md:min-w-[3rem] rounded-lg sm:rounded-xl transition-all active:scale-95 flex-shrink-0"
                   aria-label={`ลดจำนวน ${item.name}`}
                 >
                   −
                 </button>
-                <input 
-                  type="number" inputMode="decimal" className="flex-1 bg-transparent text-center text-white font-black outline-none text-xs sm:text-sm placeholder:text-orange-200 min-w-0"
-                  placeholder="สั่ง" value={cart[item.id]?.qty || ''}
-                  onChange={(e) => updateData(item.id, item.name, item.unit, 'qty', parseFloat(e.target.value))}
+                <input
+                  type="text" inputMode="numeric" className="flex-1 bg-transparent text-center text-white font-black outline-none text-xs sm:text-sm placeholder:text-orange-200 min-w-0"
+                  placeholder="สั่ง" value={cart[item.id]?.qty ?? ''}
+                  onChange={(e) => updateData(item.id, item.name, item.unit, 'qty', e.target.value)}
                 />
                 <button
                   type="button"
-                  onClick={() => updateData(item.id, item.name, item.unit, 'qty', (cart[item.id]?.qty || 0) + 1)}
+                  onClick={() => updateData(item.id, item.name, item.unit, 'qty', String((parseFloat(cart[item.id]?.qty) || 0) + 1))}
                   className="text-white font-black text-base sm:text-lg flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 min-w-[2.25rem] sm:min-w-[2.5rem] md:min-w-[3rem] rounded-lg sm:rounded-xl transition-all active:scale-95 flex-shrink-0"
                   aria-label={`เพิ่มจำนวน ${item.name}`}
                 >
