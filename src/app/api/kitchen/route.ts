@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
     const sortMap = Object.fromEntries(prefRes.data.values?.map(r => [r[0], parseFloat(r[1])]) || []);
     const allRows = mainRes.data.values || [];
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
     const todayStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear() + 543}`;
 
     const formattedData = allRows
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const sheets = google.sheets({ version: 'v4', auth });
 
     if (body.action === 'addNew') {
-      const now = new Date();
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
       const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear() + 543}`;
       await sheets.spreadsheets.values.append({
         spreadsheetId: MAIN_SHEET_ID,
