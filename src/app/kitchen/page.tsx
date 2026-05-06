@@ -224,7 +224,7 @@ export default function KitchenPage() {
       {/* ===== VIEW: SUMMARY ===== */}
       {view === "summary" && (
         <>
-          <style>{`@media print { @page { size: A4 landscape; margin: 1.2cm; } .hide-on-print { display: none !important; } }`}</style>
+          <style>{`@media print { @page { size: A4 landscape; margin: 1.2cm; } .hide-on-print { display: none !important; } col.hide-on-print { visibility: collapse; } }`}</style>
 
           {/* Print header */}
           <div className="hidden print:block mb-3 text-center">
@@ -245,8 +245,8 @@ export default function KitchenPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm print:text-[11pt]" style={{ tableLayout: "fixed" }}>
               <colgroup>
-                <col style={{ width: "44px" }} />
-                <col style={{ width: "36%" }} />
+                <col className="hide-on-print" style={{ width: "44px" }} />
+                <col style={{ width: "45%" }} />
                 <col style={{ width: "52px" }} />
                 {summary.branches.map(b => <col key={b} />)}
               </colgroup>
