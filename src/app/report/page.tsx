@@ -4,6 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 const PIN = "10031303";
 const GOLD = "#D4AF37";
 
+const ALL_BRANCHES = [
+  "สาขาชิดลม",
+  "สาขาเซ็นทรัลเวิลด์หมู",
+  "สาขานครปฐม",
+  "สาขาเกตเวย์",
+  "สาขาลาดพร้าวหมู",
+  "สาขาลาดพร้าวไก่",
+  "สาขาแจ้งวัฒนะ",
+];
+
 type Period = "daily" | "weekly" | "monthly";
 type BranchData = { name: string; revenue: number };
 type ReportData = { total: number; branches: BranchData[]; rangeStart: string; rangeEnd: string } | null;
@@ -185,30 +195,36 @@ export default function ReportPage() {
         <div style={{ color: "#333", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 16 }}>แยกสาขา</div>
         {loading ? (
           <div style={{ color: "#333", textAlign: "center", padding: 32 }}>กำลังโหลด...</div>
-        ) : data?.branches.length === 0 ? (
-          <div style={{ color: "#333", textAlign: "center", padding: 32 }}>ไม่มีข้อมูล</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {data?.branches.map((b) => (
-              <div key={b.name} style={{ background: "#111", borderRadius: 14, padding: "16px 18px", border: "1px solid #1e1e1e" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div style={{ color: "#aaa", fontSize: 13, fontWeight: 600 }}>{b.name}</div>
-                  <div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>฿{b.revenue.toLocaleString()}</div>
+            {ALL_BRANCHES.map((name) => {
+              const b = data?.branches.find(x => x.name === name);
+              const revenue = b?.revenue || 0;
+              const missing = !b || revenue === 0;
+              return (
+                <div key={name} style={{ background: "#111", borderRadius: 14, padding: "16px 18px", border: `1px solid ${missing ? "#2a1a1a" : "#1e1e1e"}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ color: missing ? "#555" : "#aaa", fontSize: 13, fontWeight: 600 }}>{name}</div>
+                    <div style={{ color: missing ? "#6b2a2a" : "#fff", fontSize: 15, fontWeight: 800 }}>
+                      {missing ? "ยังไม่ส่ง" : `฿${revenue.toLocaleString()}`}
+                    </div>
+                  </div>
+                  <div style={{ background: "#1a1a1a", borderRadius: 99, height: 4, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 99,
+                      width: missing ? "0%" : `${(revenue / max) * 100}%`,
+                      background: `linear-gradient(90deg, ${GOLD}88, ${GOLD})`,
+                      transition: "width 0.6s ease",
+                    }} />
+                  </div>
+                  {!missing && (
+                    <div style={{ color: "#333", fontSize: 10, marginTop: 6, textAlign: "right" }}>
+                      {((revenue / (data?.total || 1)) * 100).toFixed(1)}%
+                    </div>
+                  )}
                 </div>
-                {/* Bar */}
-                <div style={{ background: "#1a1a1a", borderRadius: 99, height: 4, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%", borderRadius: 99,
-                    width: `${(b.revenue / max) * 100}%`,
-                    background: `linear-gradient(90deg, ${GOLD}88, ${GOLD})`,
-                    transition: "width 0.6s ease",
-                  }} />
-                </div>
-                <div style={{ color: "#333", fontSize: 10, marginTop: 6, textAlign: "right" }}>
-                  {((b.revenue / (data?.total || 1)) * 100).toFixed(1)}%
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
