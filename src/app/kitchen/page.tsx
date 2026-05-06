@@ -224,10 +224,12 @@ export default function KitchenPage() {
       {/* ===== VIEW: SUMMARY ===== */}
       {view === "summary" && (
         <>
-          {/* Print header — only visible when printing */}
-          <div className="hidden print:block mb-4 text-center">
-            <h1 className="text-xl font-bold">ใบสรุปยอดครัวกลาง BBC</h1>
-            <p className="text-sm text-gray-600">วันที่ {todayLabel}</p>
+          <style>{`@media print { @page { size: A4 landscape; margin: 1.2cm; } }`}</style>
+
+          {/* Print header */}
+          <div className="hidden print:block mb-3 text-center">
+            <h1 className="text-lg font-bold">ใบสรุปยอดครัวกลาง BBC</h1>
+            <p className="text-sm">วันที่ {todayLabel}</p>
           </div>
 
           <div className="flex justify-between items-center mb-4 print:hidden">
@@ -241,15 +243,21 @@ export default function KitchenPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm print:text-xs">
+            <table className="w-full border-collapse text-sm print:text-[11pt]" style={{ tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: "44px" }} />
+                <col style={{ width: "36%" }} />
+                <col style={{ width: "52px" }} />
+                {summary.branches.map(b => <col key={b} />)}
+              </colgroup>
               <thead>
-                <tr className="bg-blue-900 text-white print:bg-gray-800">
-                  <th className="border border-blue-800 px-3 py-2 text-center w-10 print:border-gray-600">ลำดับ</th>
-                  <th className="border border-blue-800 px-3 py-2 text-left print:border-gray-600">รายการสินค้า</th>
-                  <th className="border border-blue-800 px-3 py-2 text-center font-bold print:border-gray-600">รวม</th>
+                <tr className="bg-blue-900 text-white print:bg-gray-700">
+                  <th className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500">ลำดับ</th>
+                  <th className="border-2 border-blue-800 px-3 py-2 text-left print:border-gray-500">รายการสินค้า</th>
+                  <th className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500">รวม</th>
                   {summary.branches.map(b => (
-                    <th key={b} className="border border-blue-800 px-2 py-2 text-center print:border-gray-600">
-                      {b.replace("(ไก่)", "").replace("(หมู)", "").trim()}
+                    <th key={b} className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500">
+                      {b.replace(/\s*\(ไก่\)/, "").replace(/\s*\(หมู\)/, "").replace("Admin", "ครัวกลาง").replace(/\s*\(ครัวกลาง\)/, "").trim()}
                     </th>
                   ))}
                 </tr>
@@ -258,14 +266,14 @@ export default function KitchenPage() {
                 {summary.products.map(([name, info], idx) => {
                   const total = Array.from(info.branches.values()).reduce((a, b) => a + b, 0);
                   return (
-                    <tr key={name} className={idx % 2 === 0 ? "bg-white" : "bg-blue-50/40"}>
-                      <td className="border border-gray-200 px-3 py-2 text-center text-gray-400 text-xs">
+                    <tr key={name} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-400 text-xs print:text-[9pt]">
                         {info.displayOrder < 999 ? info.displayOrder : ""}
                       </td>
-                      <td className="border border-gray-200 px-3 py-2 font-medium">{name}</td>
-                      <td className="border border-gray-200 px-3 py-2 text-center font-bold text-blue-700">{total || ""}</td>
+                      <td className="border border-gray-300 px-3 py-1.5 font-medium">{name}</td>
+                      <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-blue-700 print:text-black">{total || ""}</td>
                       {summary.branches.map(b => (
-                        <td key={b} className="border border-gray-200 px-3 py-2 text-center">
+                        <td key={b} className="border border-gray-300 px-2 py-1.5 text-center">
                           {info.branches.get(b) ?? ""}
                         </td>
                       ))}
