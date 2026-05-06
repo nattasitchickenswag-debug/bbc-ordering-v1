@@ -1,15 +1,26 @@
 "use client";
 import { useState } from "react";
 
-const STAFF_MAP: Record<string, { branchName: string; type: "chicken" | "pork" }> = {
-  "8241": { branchName: "ชิดลม(ไก่)",         type: "chicken" },
-  "6174": { branchName: "นครปฐม(ไก่)",        type: "chicken" },
-  "2089": { branchName: "เกตย์เวย์(ไก่)",     type: "chicken" },
-  "9126": { branchName: "ลาดพร้าว(ไก่)",      type: "chicken" },
-  "4703": { branchName: "แจ้งวัฒนะ(ไก่)",    type: "chicken" },
+const STAFF_MAP: Record<string, { branchName: string; type: "chicken" | "pork" | "floating" }> = {
+  "8241": { branchName: "ชิดลม(ไก่)",           type: "chicken" },
+  "6174": { branchName: "นครปฐม(ไก่)",          type: "chicken" },
+  "2089": { branchName: "เกตย์เวย์(ไก่)",       type: "chicken" },
+  "9126": { branchName: "ลาดพร้าว(ไก่)",        type: "chicken" },
+  "4703": { branchName: "แจ้งวัฒนะ(ไก่)",      type: "chicken" },
   "3952": { branchName: "เซ็นทรัลเวิลด์(หมู)", type: "pork"    },
-  "5437": { branchName: "ลาดพร้าว(หมู)",      type: "pork"    },
+  "5437": { branchName: "ลาดพร้าว(หมู)",        type: "pork"    },
+  "7531": { branchName: "พนักงานลอย",           type: "floating" },
 };
+
+const BRANCH_LIST: { branchName: string; type: "chicken" | "pork" }[] = [
+  { branchName: "ชิดลม(ไก่)",           type: "chicken" },
+  { branchName: "นครปฐม(ไก่)",          type: "chicken" },
+  { branchName: "เกตย์เวย์(ไก่)",       type: "chicken" },
+  { branchName: "ลาดพร้าว(ไก่)",        type: "chicken" },
+  { branchName: "แจ้งวัฒนะ(ไก่)",      type: "chicken" },
+  { branchName: "เซ็นทรัลเวิลด์(หมู)", type: "pork"    },
+  { branchName: "ลาดพร้าว(หมู)",        type: "pork"    },
+];
 
 function getYesterday() {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
@@ -20,6 +31,7 @@ function getYesterday() {
 export default function SalesPage() {
   const [pin, setPin] = useState("");
   const [branch, setBranch] = useState<{ branchName: string; type: "chicken" | "pork" } | null>(null);
+  const [isFloating, setIsFloating] = useState(false);
   const [saleDate, setSaleDate] = useState(getYesterday());
   const [revenue, setRevenue] = useState("");
   const [kaiTon, setKaiTon] = useState("");
@@ -33,8 +45,9 @@ export default function SalesPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const found = STAFF_MAP[pin];
-    if (found) setBranch(found);
-    else alert("รหัส PIN ไม่ถูกต้องครับ");
+    if (!found) { alert("รหัส PIN ไม่ถูกต้องครับ"); return; }
+    if (found.type === "floating") { setIsFloating(true); }
+    else setBranch(found as { branchName: string; type: "chicken" | "pork" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +75,35 @@ export default function SalesPage() {
       setLoading(false);
     }
   };
+
+  // Branch picker screen (floating employee)
+  if (isFloating && !branch) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-orange-50 text-black px-4">
+        <div className="p-8 bg-white shadow-2xl rounded-2xl border border-orange-100 w-full max-w-sm">
+          <h1 className="text-xl font-extrabold mb-1 text-center text-orange-600">เลือกสาขา</h1>
+          <p className="text-center text-gray-400 text-xs mb-6">วันนี้ไปช่วยสาขาไหน?</p>
+          <div className="space-y-3">
+            {BRANCH_LIST.map((b) => (
+              <button
+                key={b.branchName}
+                onClick={() => setBranch(b)}
+                className="w-full p-3 rounded-xl border-2 border-orange-100 font-bold text-gray-700 hover:border-orange-400 hover:bg-orange-50 transition-all text-left"
+              >
+                {b.branchName}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setIsFloating(false)}
+            className="mt-5 w-full text-xs text-gray-400 hover:text-red-500"
+          >
+            ← ย้อนกลับ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Login screen
   if (!branch) {
@@ -100,8 +142,8 @@ export default function SalesPage() {
           >
             กรอกอีกครั้ง
           </button>
-          <button onClick={() => setBranch(null)} className="mt-3 w-full text-gray-400 text-sm">
-            ออกจากระบบ
+          <button onClick={() => { setBranch(null); if (!isFloating) setIsFloating(false); }} className="mt-3 w-full text-gray-400 text-sm">
+            {isFloating ? "เปลี่ยนสาขา" : "ออกจากระบบ"}
           </button>
           <a href="/" className="mt-2 block text-center text-xs text-gray-300 hover:text-orange-400 transition-colors">
             ← กลับหน้าสั่งของ
@@ -120,7 +162,9 @@ export default function SalesPage() {
             <h1 className="text-lg font-extrabold text-orange-600">บันทึกยอดขาย</h1>
             <p className="text-xs text-gray-400">{branch.branchName}</p>
           </div>
-          <button onClick={() => setBranch(null)} className="text-xs text-gray-400 hover:text-red-500">ออก</button>
+          <button onClick={() => setBranch(null)} className="text-xs text-gray-400 hover:text-red-500">
+            {isFloating ? "เปลี่ยนสาขา" : "ออก"}
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
