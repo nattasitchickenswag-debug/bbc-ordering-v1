@@ -40,6 +40,7 @@ export default function SalesPage() {
   const [kaki, setKaki] = useState("");
   const [yiChak, setYiChak] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(false);
 
   const doLogin = (code: string) => {
@@ -53,9 +54,13 @@ export default function SalesPage() {
     if (pin.length === 4) doLogin(pin);
   }, [pin]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!revenue) return alert("กรุณากรอกยอดขายครับ");
+    setConfirming(true);
+  };
+
+  const doSubmit = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/sales", {
@@ -65,14 +70,14 @@ export default function SalesPage() {
           branchName: branch!.branchName,
           saleDate,
           revenue: parseFloat(revenue),
-          kai_ton:    branch!.type === "chicken" ? parseFloat(kaiTon || "0")    : 0,
+          kai_ton:     branch!.type === "chicken" ? parseFloat(kaiTon || "0")    : 0,
           nong_sa_pok: branch!.type === "chicken" ? parseFloat(nongSaPok || "0") : 0,
-          pork_leg:   branch!.type === "pork"    ? parseFloat(porkLeg || "0")  : 0,
-          kaki:       branch!.type === "pork"    ? parseFloat(kaki || "0")     : 0,
-          yi_chak:    branch!.type === "pork"    ? parseFloat(yiChak || "0")   : 0,
+          pork_leg:    branch!.type === "pork"    ? parseFloat(porkLeg || "0")  : 0,
+          kaki:        branch!.type === "pork"    ? parseFloat(kaki || "0")     : 0,
+          yi_chak:     branch!.type === "pork"    ? parseFloat(yiChak || "0")   : 0,
         }),
       });
-      if (res.ok) setDone(true);
+      if (res.ok) { setConfirming(false); setDone(true); }
       else alert("เกิดข้อผิดพลาด ลองใหม่อีกครั้งครับ");
     } finally {
       setLoading(false);
@@ -145,6 +150,51 @@ export default function SalesPage() {
               <a href="/" className="text-xs text-slate-400 hover:text-orange-500 transition-colors">← กลับหน้าสั่งของ</a>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Confirm screen
+  if (confirming) {
+    const rows: { label: string; value: string }[] = [
+      { label: "สาขา",        value: branch!.branchName },
+      { label: "วันที่ขาย",  value: saleDate },
+      { label: "ยอดขาย",     value: `${parseFloat(revenue).toLocaleString()} บาท` },
+      ...(branch!.type === "chicken" ? [
+        { label: "ไก่ตอน",     value: `${kaiTon || "0"} ตัว` },
+        { label: "น่องสะโพก", value: `${nongSaPok || "0"} กก.` },
+      ] : [
+        { label: "ขาหมู",     value: `${porkLeg || "0"} ตัว` },
+        { label: "คากิ",      value: `${kaki || "0"} ตัว` },
+        { label: "ยี่จัก",   value: `${yiChak || "0"} ตัว` },
+      ]),
+    ];
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-orange-50 text-black px-4">
+        <div className="bg-white shadow-2xl rounded-2xl border border-orange-100 w-full max-w-sm p-6">
+          <h2 className="text-lg font-extrabold text-orange-600 mb-1">ตรวจสอบข้อมูล</h2>
+          <p className="text-xs text-gray-400 mb-5">ข้อมูลถูกต้องไหม? กด ยืนยัน เพื่อบันทึก</p>
+          <div className="space-y-3 mb-6">
+            {rows.map((r) => (
+              <div key={r.label} className="flex justify-between items-center border-b border-gray-50 pb-2">
+                <span className="text-xs font-bold text-gray-400">{r.label}</span>
+                <span className="font-black text-gray-800">{r.value}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={doSubmit} disabled={loading}
+            className="w-full bg-orange-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-600 active:scale-95 transition-all disabled:opacity-50 mb-3"
+          >
+            {loading ? "กำลังบันทึก..." : "ยืนยัน"}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            className="w-full p-3 rounded-xl border-2 border-gray-100 font-bold text-gray-500 hover:border-orange-300 transition-all"
+          >
+            แก้ไข
+          </button>
         </div>
       </div>
     );
