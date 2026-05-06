@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const STAFF_MAP: Record<string, { branchName: string; type: "chicken" | "pork" | "floating" }> = {
   "8241": { branchName: "ชิดลม(ไก่)",           type: "chicken" },
@@ -10,6 +10,7 @@ const STAFF_MAP: Record<string, { branchName: string; type: "chicken" | "pork" |
   "3952": { branchName: "เซ็นทรัลเวิลด์(หมู)", type: "pork"    },
   "5437": { branchName: "ลาดพร้าว(หมู)",        type: "pork"    },
   "7531": { branchName: "พนักงานลอย",           type: "floating" },
+  "4815": { branchName: "พนักงานลอย 2",         type: "floating" },
 };
 
 const BRANCH_LIST: { branchName: string; type: "chicken" | "pork" }[] = [
@@ -22,9 +23,8 @@ const BRANCH_LIST: { branchName: string; type: "chicken" | "pork" }[] = [
   { branchName: "ลาดพร้าว(หมู)",        type: "pork"    },
 ];
 
-function getYesterday() {
+function getToday() {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
-  d.setDate(d.getDate() - 1);
   return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -32,7 +32,7 @@ export default function SalesPage() {
   const [pin, setPin] = useState("");
   const [branch, setBranch] = useState<{ branchName: string; type: "chicken" | "pork" } | null>(null);
   const [isFloating, setIsFloating] = useState(false);
-  const [saleDate, setSaleDate] = useState(getYesterday());
+  const [saleDate, setSaleDate] = useState(getToday());
   const [revenue, setRevenue] = useState("");
   const [kaiTon, setKaiTon] = useState("");
   const [nongSaPok, setNongSaPok] = useState("");
@@ -42,13 +42,16 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const found = STAFF_MAP[pin];
-    if (!found) { alert("รหัส PIN ไม่ถูกต้องครับ"); return; }
+  const doLogin = (code: string) => {
+    const found = STAFF_MAP[code];
+    if (!found) { alert("รหัส PIN ไม่ถูกต้องครับ"); setPin(""); return; }
     if (found.type === "floating") { setIsFloating(true); }
     else setBranch(found as { branchName: string; type: "chicken" | "pork" });
   };
+
+  useEffect(() => {
+    if (pin.length === 4) doLogin(pin);
+  }, [pin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,22 +111,41 @@ export default function SalesPage() {
   // Login screen
   if (!branch) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-orange-50 text-black">
-        <form onSubmit={handleLogin} className="p-10 bg-white shadow-2xl rounded-2xl border border-orange-100 w-80">
-          <h1 className="text-2xl font-extrabold mb-2 text-center text-orange-600">BBC</h1>
-          <p className="text-center text-gray-500 text-sm mb-6">บันทึกยอดขายประจำวัน</p>
-          <input
-            type="password" value={pin} onChange={(e) => setPin(e.target.value)}
-            className="w-full p-4 border-2 border-orange-100 rounded-xl mb-4 text-center text-3xl tracking-[1rem]"
-            placeholder="****" maxLength={4} autoFocus
-          />
-          <button className="w-full bg-orange-500 text-white p-3 rounded-xl font-bold hover:bg-orange-600">
-            เข้าสู่ระบบ
-          </button>
-          <a href="/" className="mt-4 block text-center text-xs text-gray-400 hover:text-orange-500 transition-colors">
-            ← กลับหน้าสั่งของ
-          </a>
-        </form>
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
+        <div className="bg-[#ea580c] h-40 flex flex-col items-center justify-center text-white shadow-lg">
+          <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-1">BBC System</h1>
+          <p className="text-xs opacity-90 tracking-widest uppercase font-bold">บันทึกยอดขายประจำวัน</p>
+        </div>
+        <div className="flex-1 -mt-8 bg-white rounded-t-[3rem] p-8 shadow-2xl relative z-10">
+          <div className="max-w-xs mx-auto">
+            <h2 className="text-center font-bold text-slate-400 mb-6 uppercase tracking-widest text-[10px]">Enter PIN Code</h2>
+            <div className="flex justify-center gap-4 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className={`w-12 h-12 rounded-2xl border-2 transition-all flex items-center justify-center ${pin.length >= i ? "bg-[#f97316] border-[#f97316] shadow-lg scale-110" : "bg-slate-50 border-slate-200"}`}>
+                  {pin.length >= i && <div className="w-3 h-3 bg-white rounded-full"></div>}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button key={num} onClick={() => setPin(prev => prev.length < 4 ? prev + num : prev)}
+                  className="h-16 bg-slate-100 rounded-2xl text-2xl font-black text-slate-700 active:bg-orange-100 transition-all shadow-sm">
+                  {num}
+                </button>
+              ))}
+              <button onClick={() => setPin("")} className="h-16 text-slate-400 font-bold text-xs uppercase">Clear</button>
+              <button onClick={() => setPin(prev => prev.length < 4 ? prev + "0" : prev)}
+                className="h-16 bg-slate-100 rounded-2xl text-2xl font-black text-slate-700 shadow-sm">0</button>
+              <button onClick={() => doLogin(pin)}
+                className="h-16 bg-[#f97316] rounded-2xl text-white text-2xl font-black shadow-lg active:scale-90 transition-all">
+                →
+              </button>
+            </div>
+            <div className="mt-6 text-center">
+              <a href="/" className="text-xs text-slate-400 hover:text-orange-500 transition-colors">← กลับหน้าสั่งของ</a>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -137,7 +159,7 @@ export default function SalesPage() {
           <h2 className="text-xl font-bold text-green-600 mb-2">บันทึกสำเร็จ!</h2>
           <p className="text-gray-500 text-sm mb-6">{branch.branchName}</p>
           <button
-            onClick={() => { setDone(false); setRevenue(""); setKaiTon(""); setNongSaPok(""); setPorkLeg(""); setKaki(""); setYiChak(""); setSaleDate(getYesterday()); }}
+            onClick={() => { setDone(false); setRevenue(""); setKaiTon(""); setNongSaPok(""); setPorkLeg(""); setKaki(""); setYiChak(""); setSaleDate(getToday()); }}
             className="w-full bg-orange-500 text-white p-3 rounded-xl font-bold hover:bg-orange-600"
           >
             กรอกอีกครั้ง
