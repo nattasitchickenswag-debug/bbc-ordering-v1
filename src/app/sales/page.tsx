@@ -149,7 +149,7 @@ export default function SalesPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">น่องสะโพก (ตัว)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1">น่องสะโพก (กก.)</label>
                 <input
                   type="number" value={nongSaPok} onChange={(e) => setNongSaPok(e.target.value)}
                   className="w-full p-3 border-2 border-gray-100 rounded-xl text-center font-bold focus:border-orange-300 outline-none"
