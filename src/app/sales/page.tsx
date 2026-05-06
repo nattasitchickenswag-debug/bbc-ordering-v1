@@ -78,6 +78,9 @@ export default function SalesPage() {
           <button className="w-full bg-orange-500 text-white p-3 rounded-xl font-bold hover:bg-orange-600">
             เข้าสู่ระบบ
           </button>
+          <a href="/" className="mt-4 block text-center text-xs text-gray-400 hover:text-orange-500 transition-colors">
+            ← กลับหน้าสั่งของ
+          </a>
         </form>
       </div>
     );
@@ -100,6 +103,9 @@ export default function SalesPage() {
           <button onClick={() => setBranch(null)} className="mt-3 w-full text-gray-400 text-sm">
             ออกจากระบบ
           </button>
+          <a href="/" className="mt-2 block text-center text-xs text-gray-300 hover:text-orange-400 transition-colors">
+            ← กลับหน้าสั่งของ
+          </a>
         </div>
       </div>
     );
