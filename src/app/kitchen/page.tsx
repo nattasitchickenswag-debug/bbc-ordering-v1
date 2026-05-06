@@ -48,11 +48,16 @@ export default function KitchenPage() {
     setLoading(false);
   };
 
-  const handleUpdateQty = async (rowNumber: number, val: string) => {
+  const isWeightProduct = (name: string) =>
+    name.includes("ไก่ตอน") || name.includes("น่องสะโพกต้ม");
+
+  const handleUpdateQty = async (rowNumber: number, val: string, weight?: string) => {
+    const body: Record<string, unknown> = { rowNumber, actualSentQty: parseFloat(val) };
+    if (weight !== undefined && weight !== "") body.weight = parseFloat(weight);
     const res = await fetch("/api/kitchen", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Kitchen-Pin": pin },
-      body: JSON.stringify({ rowNumber, actualSentQty: parseFloat(val) })
+      body: JSON.stringify(body)
     });
     if (res.ok) {
       alert("บันทึกยอดส่งจริงเรียบร้อย!");
@@ -176,6 +181,7 @@ export default function KitchenPage() {
                   <th className="p-4 text-left font-bold">สินค้า</th>
                   <th className="p-3 text-center font-bold">ยอดสั่ง</th>
                   <th className="p-3 text-center font-bold text-blue-700">ส่งจริง</th>
+                  <th className="p-3 text-center font-bold text-orange-600">น้ำหนัก (กก.)</th>
                   <th className="p-3 text-center"></th>
                 </tr>
               </thead>
@@ -203,10 +209,22 @@ export default function KitchenPage() {
                       />
                     </td>
                     <td className="p-3 text-center">
+                      {isWeightProduct(item.productName) ? (
+                        <input
+                          type="number" defaultValue={item.weight || undefined}
+                          className="w-24 p-2 border-2 border-orange-200 rounded-lg text-center font-bold text-orange-600 focus:border-orange-400 outline-none"
+                          id={`weight-${item.rowNumber}`}
+                          placeholder="0.00"
+                          step="0.01"
+                        />
+                      ) : <span className="text-gray-200">—</span>}
+                    </td>
+                    <td className="p-3 text-center">
                       <button
                         onClick={() => {
                           const val = (document.getElementById(`input-${item.rowNumber}`) as HTMLInputElement).value;
-                          handleUpdateQty(item.rowNumber, val);
+                          const weightEl = document.getElementById(`weight-${item.rowNumber}`) as HTMLInputElement | null;
+                          handleUpdateQty(item.rowNumber, val, weightEl?.value);
                         }}
                         className="bg-green-100 text-green-700 px-6 py-2 rounded-lg font-bold hover:bg-green-600 hover:text-white transition-all active:scale-95 shadow-sm"
                       >
