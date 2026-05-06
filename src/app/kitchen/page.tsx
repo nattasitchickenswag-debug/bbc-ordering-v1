@@ -172,61 +172,70 @@ export default function KitchenPage() {
             <button onClick={handleAddNew} className="bg-orange-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-orange-700">เพิ่มรายการ</button>
           </div>
 
-          <div className="bg-white shadow-xl rounded-2xl overflow-hidden border">
-            <table className="w-full">
+          <div className="bg-white shadow-xl rounded-2xl overflow-x-auto border">
+            <table className="w-full text-sm" style={{ tableLayout: "fixed", minWidth: "700px" }}>
+              <colgroup>
+                <col style={{ width: "60px" }} />
+                <col style={{ width: "130px" }} />
+                <col />
+                <col style={{ width: "68px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "72px" }} />
+              </colgroup>
               <thead className="bg-gray-50 text-gray-700">
                 <tr>
-                  <th className="p-4 text-center font-bold w-20">ลำดับ</th>
-                  <th className="p-4 text-left font-bold">สาขา</th>
-                  <th className="p-4 text-left font-bold">สินค้า</th>
-                  <th className="p-3 text-center font-bold">ยอดสั่ง</th>
-                  <th className="p-3 text-center font-bold text-blue-700">ส่งจริง</th>
-                  <th className="p-3 text-center font-bold text-orange-600">น้ำหนัก (กก.)</th>
-                  <th className="p-3 text-center"></th>
+                  <th className="p-2 text-center font-bold">ลำดับ</th>
+                  <th className="p-2 text-left font-bold">สาขา</th>
+                  <th className="p-2 text-left font-bold">สินค้า</th>
+                  <th className="p-2 text-center font-bold">ยอดสั่ง</th>
+                  <th className="p-2 text-center font-bold text-blue-700">ส่งจริง</th>
+                  <th className="p-2 text-center font-bold text-orange-600">นน. (กก.)</th>
+                  <th className="p-2 text-center"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((item, index) => (
                   <tr key={index} className="border-b hover:bg-blue-50/40 transition-colors">
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <input
                         type="number" defaultValue={item.displayOrder}
-                        className="w-14 p-2 border-2 border-gray-100 rounded-lg text-center font-bold text-gray-400 focus:border-blue-400 focus:text-blue-600 outline-none transition-all"
+                        className="w-12 p-1 border-2 border-gray-100 rounded-lg text-center font-bold text-gray-400 focus:border-blue-400 focus:text-blue-600 outline-none transition-all"
                         onBlur={(e) => handleUpdateOrder(item.rowNumber, e.target.value, item.productName)}
                         onKeyDown={(e) => e.key === "Enter" && handleUpdateOrder(item.rowNumber, (e.target as HTMLInputElement).value, item.productName)}
                       />
                     </td>
-                    <td className="p-4 font-semibold">{item.branchName}</td>
-                    <td className="p-4">{item.productName}</td>
-                    <td className="p-3 text-center">
-                      <span className="bg-yellow-100 px-3 py-1 rounded-full font-bold text-yellow-800">{item.orderedQty}</span>
+                    <td className="p-2 font-semibold text-xs">{item.branchName}</td>
+                    <td className="p-2">{item.productName}</td>
+                    <td className="p-2 text-center">
+                      <span className="bg-yellow-100 px-2 py-1 rounded-full font-bold text-yellow-800 text-xs">{item.orderedQty}</span>
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <input
                         type="number" defaultValue={item.actualSentQty ?? undefined}
-                        className="w-24 p-2 border-2 border-blue-100 rounded-lg text-center font-bold text-blue-600 focus:border-blue-500 outline-none"
+                        className="w-full p-1 border-2 border-blue-100 rounded-lg text-center font-bold text-blue-600 focus:border-blue-500 outline-none"
                         id={`input-${item.rowNumber}`}
                       />
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       {isWeightProduct(item.productName) ? (
                         <input
                           type="number" defaultValue={item.weight || undefined}
-                          className="w-24 p-2 border-2 border-orange-200 rounded-lg text-center font-bold text-orange-600 focus:border-orange-400 outline-none"
+                          className="w-full p-1 border-2 border-orange-200 rounded-lg text-center font-bold text-orange-600 focus:border-orange-400 outline-none"
                           id={`weight-${item.rowNumber}`}
                           placeholder="0.00"
                           step="0.01"
                         />
                       ) : <span className="text-gray-200">—</span>}
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <button
                         onClick={() => {
                           const val = (document.getElementById(`input-${item.rowNumber}`) as HTMLInputElement).value;
                           const weightEl = document.getElementById(`weight-${item.rowNumber}`) as HTMLInputElement | null;
                           handleUpdateQty(item.rowNumber, val, weightEl?.value);
                         }}
-                        className="bg-green-100 text-green-700 px-6 py-2 rounded-lg font-bold hover:bg-green-600 hover:text-white transition-all active:scale-95 shadow-sm"
+                        className="bg-green-100 text-green-700 w-full py-1.5 rounded-lg font-bold text-xs hover:bg-green-600 hover:text-white transition-all active:scale-95"
                       >
                         บันทึก
                       </button>
