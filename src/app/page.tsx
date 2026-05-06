@@ -452,7 +452,7 @@ export default function BBCSystemFinal() {
                     ))}
                   </div>
                   {order.remark ? (
-                    <p className="mt-2 text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-1.5">หมายเหตุ: {order.remark}</p>
+                    <p className="mt-2 text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-1.5 whitespace-pre-wrap">หมายเหตุ: {order.remark}</p>
                   ) : null}
                 </div>
               ))
