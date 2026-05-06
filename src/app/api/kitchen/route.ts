@@ -68,7 +68,32 @@ export async function POST(request: Request) {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    if (body.action === 'addNew') {
+    if (body.action === 'updateOrder') {
+      const sortRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SETTINGS_SHEET_ID,
+        range: 'Custom_Sort!A:B',
+      });
+      const sortRows = sortRes.data.values || [];
+      const rowIndex = sortRows.findIndex(r => r[0] === body.productName);
+
+      if (rowIndex > 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SETTINGS_SHEET_ID,
+          range: `Custom_Sort!B${rowIndex + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[body.newOrder]] },
+        });
+      } else {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SETTINGS_SHEET_ID,
+          range: 'Custom_Sort!A:B',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[body.productName, body.newOrder]] },
+        });
+      }
+      return NextResponse.json({ message: 'อัปเดตลำดับสำเร็จ' });
+
+    } else if (body.action === 'addNew') {
       const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
       const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear() + 543}`;
       await sheets.spreadsheets.values.append({

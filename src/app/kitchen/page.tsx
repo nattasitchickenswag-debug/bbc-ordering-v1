@@ -53,19 +53,20 @@ export default function KitchenPage() {
   };
 
   // --- ฟังก์ชันใหม่: จัดลำดับสินค้า ---
-  const handleUpdateOrder = async (rowNumber: number, newOrder: string) => {
+  const handleUpdateOrder = async (rowNumber: number, newOrder: string, productName: string) => {
     if (!newOrder) return;
     const res = await fetch("/api/kitchen", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Kitchen-Pin": pin },
-      body: JSON.stringify({ 
-        action: 'updateOrder', 
-        rowNumber, 
-        newOrder: parseFloat(newOrder) 
+      body: JSON.stringify({
+        action: 'updateOrder',
+        rowNumber,
+        productName,
+        newOrder: parseFloat(newOrder)
       })
     });
     if (res.ok) {
-      fetchData(pin); // โหลดข้อมูลใหม่เพื่อสลับลำดับบนหน้าจอ
+      fetchData(pin);
     }
   };
 
@@ -150,8 +151,8 @@ export default function KitchenPage() {
                     type="number"
                     defaultValue={item.displayOrder}
                     className="w-14 p-2 border-2 border-gray-100 rounded-lg text-center font-bold text-gray-400 focus:border-blue-400 focus:text-blue-600 outline-none transition-all"
-                    onBlur={(e) => handleUpdateOrder(item.rowNumber, e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateOrder(item.rowNumber, (e.target as HTMLInputElement).value)}
+                    onBlur={(e) => handleUpdateOrder(item.rowNumber, e.target.value, item.productName)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateOrder(item.rowNumber, (e.target as HTMLInputElement).value, item.productName)}
                   />
                 </td>
                 <td className="p-4 font-semibold">{item.branchName}</td>
