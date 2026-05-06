@@ -166,25 +166,25 @@ export default function ReportPage() {
       {/* Date navigator */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, padding: "20px 24px 0" }}>
         <button onClick={() => setDate(d => shiftDate(d, period, -1))}
-          style={{ background: "#1a1a1a", border: "1px solid #222", borderRadius: 10, color: "#888", width: 40, height: 40, fontSize: 18, cursor: "pointer" }}>
+          style={{ background: "#1e1e1e", border: "1px solid #333", borderRadius: 10, color: "#bbb", width: 40, height: 40, fontSize: 20, cursor: "pointer" }}>
           ‹
         </button>
-        <div style={{ color: "#ccc", fontSize: 14, fontWeight: 600, textAlign: "center", minWidth: 180 }}>
+        <div style={{ color: "#f0f0f0", fontSize: 15, fontWeight: 700, textAlign: "center", minWidth: 200 }}>
           {data ? periodLabel(period, data.rangeStart, data.rangeEnd) : "—"}
         </div>
         <button onClick={() => setDate(d => shiftDate(d, period, 1))}
-          style={{ background: "#1a1a1a", border: "1px solid #222", borderRadius: 10, color: "#888", width: 40, height: 40, fontSize: 18, cursor: "pointer" }}>
+          style={{ background: "#1e1e1e", border: "1px solid #333", borderRadius: 10, color: "#bbb", width: 40, height: 40, fontSize: 20, cursor: "pointer" }}>
           ›
         </button>
       </div>
 
       {/* Total */}
       <div style={{ textAlign: "center", padding: "32px 24px 24px" }}>
-        <div style={{ color: "#444", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>ยอดรวม</div>
+        <div style={{ color: "#888", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>ยอดรวม</div>
         {loading ? (
-          <div style={{ color: "#333", fontSize: 40, fontWeight: 900 }}>—</div>
+          <div style={{ color: "#555", fontSize: 40, fontWeight: 900 }}>—</div>
         ) : (
-          <div style={{ color: GOLD, fontSize: 44, fontWeight: 900, letterSpacing: -1, textShadow: `0 0 30px ${GOLD}44` }}>
+          <div style={{ color: GOLD, fontSize: 44, fontWeight: 900, letterSpacing: -1, textShadow: `0 0 30px ${GOLD}66` }}>
             ฿{(data?.total || 0).toLocaleString()}
           </div>
         )}
@@ -192,9 +192,9 @@ export default function ReportPage() {
 
       {/* Branch breakdown */}
       <div style={{ padding: "0 24px" }}>
-        <div style={{ color: "#333", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 16 }}>แยกสาขา</div>
+        <div style={{ color: "#666", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 16 }}>แยกสาขา</div>
         {loading ? (
-          <div style={{ color: "#333", textAlign: "center", padding: 32 }}>กำลังโหลด...</div>
+          <div style={{ color: "#666", textAlign: "center", padding: 32 }}>กำลังโหลด...</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {ALL_BRANCHES.map((name) => {
@@ -202,14 +202,14 @@ export default function ReportPage() {
               const revenue = b?.revenue || 0;
               const missing = !b || revenue === 0;
               return (
-                <div key={name} style={{ background: "#111", borderRadius: 14, padding: "16px 18px", border: `1px solid ${missing ? "#2a1a1a" : "#1e1e1e"}` }}>
+                <div key={name} style={{ background: "#161616", borderRadius: 14, padding: "16px 18px", border: `1px solid ${missing ? "#3a1f1f" : "#2a2a2a"}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ color: missing ? "#555" : "#aaa", fontSize: 13, fontWeight: 600 }}>{name}</div>
-                    <div style={{ color: missing ? "#6b2a2a" : "#fff", fontSize: 15, fontWeight: 800 }}>
+                    <div style={{ color: missing ? "#666" : "#ddd", fontSize: 13, fontWeight: 600 }}>{name}</div>
+                    <div style={{ color: missing ? "#c0392b" : "#fff", fontSize: 15, fontWeight: 800 }}>
                       {missing ? "ยังไม่ส่ง" : `฿${revenue.toLocaleString()}`}
                     </div>
                   </div>
-                  <div style={{ background: "#1a1a1a", borderRadius: 99, height: 4, overflow: "hidden" }}>
+                  <div style={{ background: "#222", borderRadius: 99, height: 5, overflow: "hidden" }}>
                     <div style={{
                       height: "100%", borderRadius: 99,
                       width: missing ? "0%" : `${(revenue / max) * 100}%`,
@@ -218,7 +218,7 @@ export default function ReportPage() {
                     }} />
                   </div>
                   {!missing && (
-                    <div style={{ color: "#333", fontSize: 10, marginTop: 6, textAlign: "right" }}>
+                    <div style={{ color: "#666", fontSize: 10, marginTop: 6, textAlign: "right" }}>
                       {((revenue / (data?.total || 1)) * 100).toFixed(1)}%
                     </div>
                   )}
