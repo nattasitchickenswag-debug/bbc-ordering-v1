@@ -366,6 +366,11 @@ export default function BBCSystemFinal() {
               <ChevronRight size={32} />
             </button>
           </div>
+          <div className="mt-8 text-center">
+            <a href="/sales" className="text-xs text-slate-400 hover:text-orange-500 transition-colors">
+              📊 บันทึกยอดขายประจำวัน →
+            </a>
+          </div>
         </div>
       </div>
     </div>
