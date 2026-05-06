@@ -224,7 +224,7 @@ export default function KitchenPage() {
       {/* ===== VIEW: SUMMARY ===== */}
       {view === "summary" && (
         <>
-          <style>{`@media print { @page { size: A4 landscape; margin: 1.2cm; } }`}</style>
+          <style>{`@media print { @page { size: A4 landscape; margin: 1.2cm; } .hide-on-print { display: none !important; } }`}</style>
 
           {/* Print header */}
           <div className="hidden print:block mb-3 text-center">
@@ -252,7 +252,7 @@ export default function KitchenPage() {
               </colgroup>
               <thead>
                 <tr className="bg-blue-900 text-white print:bg-gray-700">
-                  <th className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500 print:hidden">ลำดับ</th>
+                  <th className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500 hide-on-print">ลำดับ</th>
                   <th className="border-2 border-blue-800 px-3 py-2 text-left print:border-gray-500">รายการสินค้า</th>
                   <th className="border-2 border-blue-800 px-2 py-2 text-center print:border-gray-500">รวม</th>
                   {summary.branches.map(b => (
@@ -267,7 +267,7 @@ export default function KitchenPage() {
                   const total = Array.from(info.branches.values()).reduce((a, b) => a + b, 0);
                   return (
                     <tr key={name} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                      <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-400 text-xs print:text-[9pt] print:hidden">
+                      <td className="border border-gray-300 px-2 py-1.5 text-center text-gray-400 text-xs hide-on-print">
                         {info.displayOrder < 999 ? info.displayOrder : ""}
                       </td>
                       <td className="border border-gray-300 px-3 py-1.5 font-medium">{name}</td>
