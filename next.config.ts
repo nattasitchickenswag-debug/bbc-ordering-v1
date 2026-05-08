@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  reactStrictMode: true
+  reactStrictMode: true,
+  serverExternalPackages: ['pdf-parse'],
 };
 
 export default nextConfig;
