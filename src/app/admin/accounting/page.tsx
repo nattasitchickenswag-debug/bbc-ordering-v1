@@ -52,7 +52,17 @@ type Entry = {
   other: number;
 };
 
-type ViewMode = "daily" | "summary";
+type ViewMode = "daily" | "summary" | "pending";
+
+type PendingImport = {
+  id: string;
+  pdf_date: string;
+  branch_name_pdf: string;
+  branch_name_bbc: string | null;
+  grab_amount: number;
+  filename: string;
+  status: string;
+};
 
 export default function AdminAccountingPage() {
   const { from: defaultFrom, to: defaultTo } = getThisMonth();
@@ -61,6 +71,9 @@ export default function AdminAccountingPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("summary");
+  const [pending, setPending] = useState<PendingImport[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -73,7 +86,34 @@ export default function AdminAccountingPage() {
     }
   }, [from, to]);
 
+  const fetchPending = useCallback(async () => {
+    setPendingLoading(true);
+    try {
+      const res = await fetch('/api/grab-import');
+      const data = await res.json();
+      setPending((data.rows ?? []).filter((r: PendingImport) => r.status === 'pending'));
+    } finally {
+      setPendingLoading(false);
+    }
+  }, []);
+
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    setActionLoading(id + action);
+    try {
+      await fetch('/api/grab-import', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action }),
+      });
+      await fetchPending();
+      if (action === 'approve') await fetchData();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchPending(); }, [fetchPending]);
 
   // Per-branch summary
   const branchSummary = BRANCHES.map((b) => {
@@ -144,6 +184,15 @@ export default function AdminAccountingPage() {
               <button onClick={() => setView("daily")}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${view === "daily" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                 รายวัน
+              </button>
+              <button onClick={() => setView("pending")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors relative ${view === "pending" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                Grab รออนุมัติ
+                {pending.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-black">
+                    {pending.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -231,6 +280,73 @@ export default function AdminAccountingPage() {
                 </tfoot>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Pending Grab imports */}
+        {view === "pending" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div>
+                <h2 className="font-black text-gray-700">Grab รออนุมัติ</h2>
+                <p className="text-xs text-gray-400">ดึงจาก email อัตโนมัติ — กด อนุมัติ เพื่อบันทึกเข้าระบบ</p>
+              </div>
+              <button onClick={fetchPending} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1 border rounded-lg">
+                รีเฟรช
+              </button>
+            </div>
+            {pendingLoading ? (
+              <div className="p-8 text-center text-gray-400 text-sm">กำลังโหลด...</div>
+            ) : pending.length === 0 ? (
+              <div className="p-12 text-center text-gray-400">
+                <p className="text-3xl mb-2">✅</p>
+                <p className="font-bold">ไม่มีรายการรออนุมัติ</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-xs text-gray-400 font-bold uppercase">
+                      <th className="text-left px-4 py-3">วันที่</th>
+                      <th className="text-left px-3 py-3">ชื่อในไฟล์</th>
+                      <th className="text-left px-3 py-3">สาขาในระบบ</th>
+                      <th className="text-right px-3 py-3">ยอดรายการ Grab</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pending.map((row) => (
+                      <tr key={row.id} className="border-t border-gray-50 hover:bg-orange-50">
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{row.pdf_date?.toString().slice(0, 10)}</td>
+                        <td className="px-3 py-3 text-gray-500 text-xs max-w-xs truncate">{row.branch_name_pdf}</td>
+                        <td className="px-3 py-3 font-bold">
+                          {row.branch_name_bbc
+                            ? <span className="text-gray-800">{row.branch_name_bbc}</span>
+                            : <span className="text-red-400 text-xs">ไม่รู้จักสาขา</span>}
+                        </td>
+                        <td className="text-right px-3 py-3 font-black text-gray-800">{fmt(row.grab_amount)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => handleAction(row.id, 'approve')}
+                              disabled={actionLoading === row.id + 'approve'}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                              {actionLoading === row.id + 'approve' ? '...' : 'อนุมัติ'}
+                            </button>
+                            <button
+                              onClick={() => handleAction(row.id, 'reject')}
+                              disabled={actionLoading === row.id + 'reject'}
+                              className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-500 disabled:opacity-50 transition-colors">
+                              {actionLoading === row.id + 'reject' ? '...' : 'ปฏิเสธ'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
