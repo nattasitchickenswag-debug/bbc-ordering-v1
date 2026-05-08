@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
-export const GP_RATES = {
+const GP_RATES = {
   cash: 0,
   line_man: 0.27,
   grab: 0.30,
