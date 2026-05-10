@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-const CHICKEN_PIN = "5678";
+const CHICKEN_PIN = "2569";
 
 function getToday() {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
@@ -36,6 +36,14 @@ type Bill = {
   grand_total: number; note: string | null;
 };
 
+type WeighSession = {
+  id: number;
+  weigh_date: string;
+  total_chicken: number;
+  total_offal: number;
+  bag_count: number;
+};
+
 type Fields = {
   tonCount: string; tonWeight: string; tonPrice: string;
   nsotWeight: string; nsotPrice: string;
@@ -62,6 +70,7 @@ export default function ChickenBillPage() {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [weighSession, setWeighSession] = useState<WeighSession | null>(null);
 
   // AI scan
   const [scanning, setScanning] = useState(false);
@@ -92,6 +101,14 @@ export default function ChickenBillPage() {
   }, [pin]);
 
   useEffect(() => { if (loggedIn) fetchHistory(); }, [loggedIn]);
+
+  const fetchWeighSession = async (date: string) => {
+    try {
+      const res = await fetch(`/api/inventory/chicken-receive?date=${date}`);
+      const data = await res.json();
+      setWeighSession(data.session || null);
+    } catch { /* ignore */ }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -230,7 +247,7 @@ export default function ChickenBillPage() {
           note: note || null,
         }),
       });
-      if (res.ok) { setConfirming(false); setDone(true); await fetchHistory(); }
+      if (res.ok) { setConfirming(false); setDone(true); await fetchHistory(); await fetchWeighSession(billDate); }
       else alert("เกิดข้อผิดพลาดครับ");
     } catch { alert("เกิดข้อผิดพลาดครับ"); }
     finally { setLoading(false); }
@@ -274,19 +291,56 @@ export default function ChickenBillPage() {
   );
 
   // Done
-  if (done) return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
-        <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">บันทึกสำเร็จ</h2>
-        <p className="text-gray-500 mb-2">{fmtDate(billDate)} · ซัพไก่</p>
-        <p className="text-3xl font-bold text-amber-600 mb-6">฿{fmt(grandTotal)}</p>
-        <button onClick={resetForm} className="w-full bg-amber-500 text-white rounded-xl py-3 font-semibold">
-          บันทึกบิลใหม่
-        </button>
+  if (done) {
+    const billChicken = +fields.tonWeight + +fields.nsotWeight + +fields.nomWeight + +fields.khaWeight;
+    const actualChicken = weighSession ? Number(weighSession.total_chicken) : null;
+    const diffChicken = actualChicken !== null ? billChicken - actualChicken : null;
+    const isAlert = diffChicken !== null && Math.abs(diffChicken) > 5;
+    return (
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+          <div className="text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">บันทึกสำเร็จ</h2>
+          <p className="text-gray-500 mb-2">{fmtDate(billDate)} · ซัพไก่</p>
+          <p className="text-3xl font-bold text-amber-600 mb-4">฿{fmt(grandTotal)}</p>
+
+          {/* Cross-check กับการชั่งน้ำหนัก */}
+          {weighSession ? (
+            <div className={`rounded-xl p-4 mb-5 text-left text-sm ${isAlert ? "bg-red-50 border border-red-300" : "bg-green-50 border border-green-200"}`}>
+              <p className="font-semibold mb-2 text-gray-700">📊 เปรียบเทียบกับการชั่ง</p>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ไก่จากบิล</span>
+                  <span className="font-medium">{fmt(billChicken)} กก.</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ไก่ที่ชั่งจริง</span>
+                  <span className="font-medium">{fmt(actualChicken!)} กก.</span>
+                </div>
+                <div className={`flex justify-between font-semibold pt-1 border-t ${isAlert ? "text-red-600" : "text-green-700"}`}>
+                  <span>ส่วนต่างไก่</span>
+                  <span>{diffChicken! >= 0 ? "+" : ""}{fmt(diffChicken!)} กก. {isAlert ? "⚠️" : "✓"}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t text-gray-500">
+                  <span>เครื่องในที่ชั่ง</span>
+                  <span className="font-medium">{fmt(Number(weighSession.total_offal))} กก.</span>
+                </div>
+              </div>
+              {isAlert && <p className="text-red-600 text-xs mt-2 font-medium">⚠️ น้ำหนักไก่ต่างจากบิลเกิน 5 กก. กรุณาตรวจสอบ</p>}
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl p-3 mb-5 text-sm text-gray-400 text-left">
+              📊 ยังไม่มีข้อมูลการชั่งน้ำหนักวันนี้
+            </div>
+          )}
+
+          <button onClick={resetForm} className="w-full bg-amber-500 text-white rounded-xl py-3 font-semibold">
+            บันทึกบิลใหม่
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   // Confirm
   if (confirming) return (
