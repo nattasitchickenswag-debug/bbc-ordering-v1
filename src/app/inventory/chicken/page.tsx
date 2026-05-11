@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-const CHICKEN_PIN = "2569";
+const CHICKEN_PIN = "5678";
 
 function getToday() {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
@@ -36,14 +36,6 @@ type Bill = {
   grand_total: number; note: string | null;
 };
 
-type WeighSession = {
-  id: number;
-  weigh_date: string;
-  total_chicken: number;
-  total_offal: number;
-  bag_count: number;
-};
-
 type Fields = {
   tonCount: string; tonWeight: string; tonPrice: string;
   nsotWeight: string; nsotPrice: string;
@@ -70,12 +62,13 @@ export default function ChickenBillPage() {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [weighSession, setWeighSession] = useState<WeighSession | null>(null);
 
   // AI scan
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [scanPreviews, setScanPreviews] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   // Voice
   const [listening, setListening] = useState(false);
@@ -102,14 +95,6 @@ export default function ChickenBillPage() {
 
   useEffect(() => { if (loggedIn) fetchHistory(); }, [loggedIn]);
 
-  const fetchWeighSession = async (date: string) => {
-    try {
-      const res = await fetch(`/api/inventory/chicken-receive?date=${date}`);
-      const data = await res.json();
-      setWeighSession(data.session || null);
-    } catch { /* ignore */ }
-  };
-
   const fetchHistory = async () => {
     try {
       const res = await fetch("/api/inventory/chicken");
@@ -131,19 +116,20 @@ export default function ChickenBillPage() {
     } catch { /* ignore */ }
   };
 
-  // ── Scan รูป ──────────────────────────────────────────────────────────
+  // ── Scan รูป (รองรับหลายรูปพร้อมกัน) ─────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setScanError("");
     setScanning(true);
+    setScanPreviews([]);
     try {
-      // resize ก่อนส่ง
-      const dataUrl = await resizeImage(file, 1200);
+      const dataUrls = await Promise.all(files.map(f => resizeImage(f, 1200)));
+      setScanPreviews(dataUrls);
       const res = await fetch("/api/inventory/chicken/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "image", image: dataUrl }),
+        body: JSON.stringify({ mode: "images", images: dataUrls }),
       });
       if (!res.ok) throw new Error("scan failed");
       const data: ScannedData = await res.json();
@@ -247,7 +233,7 @@ export default function ChickenBillPage() {
           note: note || null,
         }),
       });
-      if (res.ok) { setConfirming(false); setDone(true); await fetchHistory(); await fetchWeighSession(billDate); }
+      if (res.ok) { setConfirming(false); setDone(true); await fetchHistory(); }
       else alert("เกิดข้อผิดพลาดครับ");
     } catch { alert("เกิดข้อผิดพลาดครับ"); }
     finally { setLoading(false); }
@@ -258,6 +244,7 @@ export default function ChickenBillPage() {
     setNote("");
     setTranscript("");
     setScanError("");
+    setScanPreviews([]);
     setBillDate(getToday());
     setDone(false);
     // ล็อคราคาใหม่จากประวัติล่าสุด
@@ -291,56 +278,19 @@ export default function ChickenBillPage() {
   );
 
   // Done
-  if (done) {
-    const billChicken = +fields.tonWeight + +fields.nsotWeight + +fields.nomWeight + +fields.khaWeight;
-    const actualChicken = weighSession ? Number(weighSession.total_chicken) : null;
-    const diffChicken = actualChicken !== null ? billChicken - actualChicken : null;
-    const isAlert = diffChicken !== null && Math.abs(diffChicken) > 5;
-    return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
-          <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">บันทึกสำเร็จ</h2>
-          <p className="text-gray-500 mb-2">{fmtDate(billDate)} · ซัพไก่</p>
-          <p className="text-3xl font-bold text-amber-600 mb-4">฿{fmt(grandTotal)}</p>
-
-          {/* Cross-check กับการชั่งน้ำหนัก */}
-          {weighSession ? (
-            <div className={`rounded-xl p-4 mb-5 text-left text-sm ${isAlert ? "bg-red-50 border border-red-300" : "bg-green-50 border border-green-200"}`}>
-              <p className="font-semibold mb-2 text-gray-700">📊 เปรียบเทียบกับการชั่ง</p>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ไก่จากบิล</span>
-                  <span className="font-medium">{fmt(billChicken)} กก.</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ไก่ที่ชั่งจริง</span>
-                  <span className="font-medium">{fmt(actualChicken!)} กก.</span>
-                </div>
-                <div className={`flex justify-between font-semibold pt-1 border-t ${isAlert ? "text-red-600" : "text-green-700"}`}>
-                  <span>ส่วนต่างไก่</span>
-                  <span>{diffChicken! >= 0 ? "+" : ""}{fmt(diffChicken!)} กก. {isAlert ? "⚠️" : "✓"}</span>
-                </div>
-                <div className="flex justify-between pt-1 border-t text-gray-500">
-                  <span>เครื่องในที่ชั่ง</span>
-                  <span className="font-medium">{fmt(Number(weighSession.total_offal))} กก.</span>
-                </div>
-              </div>
-              {isAlert && <p className="text-red-600 text-xs mt-2 font-medium">⚠️ น้ำหนักไก่ต่างจากบิลเกิน 5 กก. กรุณาตรวจสอบ</p>}
-            </div>
-          ) : (
-            <div className="bg-gray-50 rounded-xl p-3 mb-5 text-sm text-gray-400 text-left">
-              📊 ยังไม่มีข้อมูลการชั่งน้ำหนักวันนี้
-            </div>
-          )}
-
-          <button onClick={resetForm} className="w-full bg-amber-500 text-white rounded-xl py-3 font-semibold">
-            บันทึกบิลใหม่
-          </button>
-        </div>
+  if (done) return (
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+        <div className="text-5xl mb-4">✅</div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">บันทึกสำเร็จ</h2>
+        <p className="text-gray-500 mb-2">{fmtDate(billDate)} · ซัพไก่</p>
+        <p className="text-3xl font-bold text-amber-600 mb-6">฿{fmt(grandTotal)}</p>
+        <button onClick={resetForm} className="w-full bg-amber-500 text-white rounded-xl py-3 font-semibold">
+          บันทึกบิลใหม่
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
   // Confirm
   if (confirming) return (
@@ -388,19 +338,33 @@ export default function ChickenBillPage() {
         </div>
 
         {/* ── ปุ่ม สแกน / พูด ── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
 
-          {/* สแกนบิล */}
+          {/* ถ่ายเลย (กล้อง) */}
           <div>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment"
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+              className="hidden" onChange={handleFileChange} />
+            <button
+              onClick={() => cameraRef.current?.click()}
+              disabled={scanning}
+              className="w-full bg-white border-2 border-amber-400 text-amber-600 rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:bg-amber-50"
+            >
+              <span className="text-2xl">📸</span>
+              <span className="text-xs">ถ่ายเลย</span>
+            </button>
+          </div>
+
+          {/* เลือกจากอัลบั้ม (หลายรูป) */}
+          <div>
+            <input ref={fileRef} type="file" accept="image/*" multiple
               className="hidden" onChange={handleFileChange} />
             <button
               onClick={() => fileRef.current?.click()}
               disabled={scanning}
               className="w-full bg-white border-2 border-amber-400 text-amber-600 rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:bg-amber-50"
             >
-              <span className="text-2xl">📷</span>
-              <span className="text-sm">{scanning ? "กำลังอ่าน..." : "สแกนบิล"}</span>
+              <span className="text-2xl">🖼️</span>
+              <span className="text-xs">{scanning ? `อ่าน${scanPreviews.length > 1 ? ` ${scanPreviews.length} รูป` : ""}...` : "จากอัลบั้ม"}</span>
             </button>
           </div>
 
@@ -412,7 +376,7 @@ export default function ChickenBillPage() {
               ${listening ? "bg-red-500 border-red-500 text-white animate-pulse" : "bg-white border-amber-400 text-amber-600"}`}
           >
             <span className="text-2xl">{listening ? "⏹" : "🎤"}</span>
-            <span className="text-sm">{listening ? "กำลังฟัง..." : "พูด"}</span>
+            <span className="text-xs">{listening ? "กำลังฟัง..." : "พูด"}</span>
           </button>
         </div>
 
@@ -420,6 +384,20 @@ export default function ChickenBillPage() {
         {transcript && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-gray-600">
             🗣 "{transcript}"
+          </div>
+        )}
+
+        {/* Thumbnail strip */}
+        {scanPreviews.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {scanPreviews.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt={`รูป ${i + 1}`}
+                className="h-16 w-16 object-cover rounded-lg border-2 border-amber-300 shrink-0" />
+            ))}
+            <div className="flex items-center px-2 text-xs text-gray-400 shrink-0">
+              {scanPreviews.length} รูป
+            </div>
           </div>
         )}
 

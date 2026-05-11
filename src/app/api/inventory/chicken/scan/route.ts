@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const EXTRACT_PROMPT = `อ่านบิลรับไก่แล้วดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องอธิบายเพิ่มเติม
+const EXTRACT_PROMPT = `อ่านบิลรับไก่แล้วดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องอธิบายเพิ่มเติม ถ้ามีหลายรูปให้รวมข้อมูลจากทุกรูปเป็น JSON เดียว
 ถ้าไม่มีรายการใดให้ใส่ 0
 
 {
@@ -46,16 +46,20 @@ function extractJSON(raw: string) {
 
 export async function POST(req: Request) {
   try {
-    const { mode, image, text } = await req.json();
+    const { mode, image, images, text } = await req.json();
 
     let messages: OpenAI.Chat.ChatCompletionMessageParam[];
 
-    if (mode === "image") {
+    if (mode === "images" || mode === "image") {
+      const imageList: string[] = mode === "images" ? images : [image];
       messages = [{
         role: "user",
         content: [
           { type: "text", text: EXTRACT_PROMPT },
-          { type: "image_url", image_url: { url: image, detail: "high" } },
+          ...imageList.map(img => ({
+            type: "image_url" as const,
+            image_url: { url: img, detail: "high" as const },
+          })),
         ],
       }];
     } else {
