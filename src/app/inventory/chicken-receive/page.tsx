@@ -45,7 +45,12 @@ type Bag = {
 
 export default function ChickenReceivePage() {
   const [pin, setPin] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("chicken_receive_auth") === "1";
+    }
+    return false;
+  });
   const [weighDate, setWeighDate] = useState(getToday());
   const [bags, setBags] = useState<Bag[]>([]);
 
@@ -66,7 +71,7 @@ export default function ChickenReceivePage() {
     const val = v.replace(/\D/g, "");
     setPin(val);
     if (val.length === 4) {
-      if (val === RECEIVE_PIN) setLoggedIn(true);
+      if (val === RECEIVE_PIN) { setLoggedIn(true); sessionStorage.setItem("chicken_receive_auth", "1"); }
       else { alert("PIN ไม่ถูกต้องครับ"); setPin(""); }
     }
   };
