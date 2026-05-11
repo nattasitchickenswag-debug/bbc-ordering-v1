@@ -100,6 +100,14 @@ export default function ChickenReceivePage() {
     });
   };
 
+  const toggleType = (bag_no: number) => {
+    setBags(prev => prev.map(b =>
+      b.bag_no === bag_no
+        ? { ...b, type: b.type === "chicken" ? "offal" : "chicken" }
+        : b
+    ));
+  };
+
   // ── คำนวณยอดรวม ──
   const totalChicken = bags.filter(b => b.type === "chicken").reduce((s, b) => s + b.weight, 0);
   const totalOffal = bags.filter(b => b.type === "offal").reduce((s, b) => s + b.weight, 0);
@@ -307,8 +315,14 @@ export default function ChickenReceivePage() {
             <div className="space-y-2">
               {bags.map(b => (
                 <div key={b.bag_no} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-500">ถุง {b.bag_no} · {b.type === "chicken" ? "🐔 ตอน" : "🫀 เครื่องใน"}</span>
+                  <span className="text-gray-500">ถุง {b.bag_no}</span>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleType(b.bag_no)}
+                      className={`text-xs px-2 py-1 rounded-lg font-medium border ${b.type === "chicken" ? "bg-orange-100 text-orange-600 border-orange-200" : "bg-purple-100 text-purple-600 border-purple-200"}`}
+                    >
+                      {b.type === "chicken" ? "🐔 ตอน" : "🫀 เครื่องใน"}
+                    </button>
                     <span className="font-semibold">{fmt(b.weight)} กก.</span>
                     <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs px-1">✕</button>
                   </div>
