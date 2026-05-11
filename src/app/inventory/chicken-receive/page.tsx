@@ -70,6 +70,10 @@ export default function ChickenReceivePage() {
       if (!res.ok || data.error) throw new Error(data.error || "อ่านไม่ออก");
       setCurrentWeight(String(data.weight));
       setPendingBag(true);
+      // เตือนถ้าน้ำหนักดูผิดปกติ
+      if (data.weight > 50) {
+        setScanError(`⚠️ อ่านได้ ${data.weight} กก. — ดูเยอะผิดปกติ อาจอ่านจุดทศนิยมผิด กรุณาตรวจสอบก่อนกด บันทึก`);
+      }
     } catch (err: unknown) {
       setScanError(err instanceof Error ? err.message : "อ่านไม่ออกครับ ลองถ่ายใหม่ให้เห็นจอชัดขึ้น");
     } finally {
