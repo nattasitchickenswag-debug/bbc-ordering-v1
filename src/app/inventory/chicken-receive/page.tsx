@@ -130,6 +130,9 @@ export default function ChickenReceivePage() {
   };
 
   const removeBag = (bag_no: number) => {
+    const bag = bags.find(b => b.bag_no === bag_no);
+    if (!bag) return;
+    if (!confirm(`ลบถุงที่ ${bag_no} (${bagLabel(bag.type)} ${fmt(bag.weight)} กก.) ?`)) return;
     setBags(prev => {
       const filtered = prev.filter(b => b.bag_no !== bag_no);
       return filtered.map((b, i) => ({ ...b, bag_no: i + 1 }));
