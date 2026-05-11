@@ -144,54 +144,59 @@ export default function ChickenReceivePage() {
     </div>
   );
 
-  // Done screen — screenshot-friendly
+  // Done screen — screenshot-friendly สำหรับส่ง LINE
   if (done) return (
-    <div className="min-h-screen bg-orange-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
-        <div className="text-center mb-4">
-          <div className="text-4xl mb-2">✅</div>
-          <h2 className="text-xl font-bold text-gray-800">ส่งข้อมูลเรียบร้อย</h2>
-          <p className="text-sm text-gray-400">{fmtDate(weighDate)} · ครัวกลาง BBC</p>
+    <div className="min-h-screen bg-orange-50 flex flex-col items-center justify-center p-4 gap-4">
+
+      {/* กรอบหลัก — แคปแล้วส่ง LINE */}
+      <div className="bg-white rounded-2xl shadow-lg p-5 w-full max-w-sm">
+        <div className="text-center mb-4 border-b pb-3">
+          <p className="text-xs text-gray-400 mb-1">ครัวกลาง BBC</p>
+          <p className="text-lg font-bold text-gray-800">รับไก่ {fmtDate(weighDate)}</p>
         </div>
 
-        {/* สรุปรวม */}
-        <div className="bg-orange-50 rounded-xl p-4 mb-4 space-y-2 text-sm">
-          <div className="flex justify-between font-semibold text-orange-700">
-            <span>🐔 ไก่รวม</span>
-            <span>{fmt(totalChicken)} กก. ({chickenBags} ถุง)</span>
-          </div>
-          <div className="flex justify-between font-semibold text-purple-700">
-            <span>🫀 เครื่องในรวม</span>
-            <span>{fmt(totalOffal)} กก. ({offalBags} ถุง)</span>
-          </div>
-          <div className="flex justify-between font-bold text-gray-800 border-t pt-2">
-            <span>📦 รวมทั้งหมด</span>
-            <span>{bags.length} ถุง</span>
+        {/* ยอดหลัก */}
+        <div className="space-y-2 mb-4">
+          {totalChicken > 0 && (
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600 font-medium">🐔 ไก่ตอน</span>
+              <span className="text-xl font-bold text-orange-600">{fmt(totalChicken)} กก.</span>
+            </div>
+          )}
+          {totalOffal > 0 && (
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600 font-medium">🫀 เครื่องใน</span>
+              <span className="text-xl font-bold text-purple-600">{fmt(totalOffal)} กก.</span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm text-gray-400 border-t pt-2">
+            <span>รวม</span>
+            <span>{bags.length} ถุง ({chickenBags > 0 ? `ตอน ${chickenBags}` : ""}{chickenBags > 0 && offalBags > 0 ? ", " : ""}{offalBags > 0 ? `เครื่องใน ${offalBags}` : ""})</span>
           </div>
         </div>
 
         {/* รายการแต่ละถุง */}
-        <div className="bg-gray-50 rounded-xl p-3 mb-5">
-          <p className="text-xs text-gray-400 mb-2 font-medium">รายการถุง</p>
+        <div className="bg-gray-50 rounded-xl p-3">
           <div className="space-y-1">
             {bags.map(b => (
               <div key={b.bag_no} className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  ถุง {b.bag_no} · {b.type === "chicken" ? "🐔 ไก่" : "🫀 เครื่องใน"}
+                <span className="text-gray-400">
+                  {b.bag_no}. {b.type === "chicken" ? "ตอน" : "เครื่องใน"}
                 </span>
-                <span className="font-medium">{fmt(b.weight)} กก.</span>
+                <span className="font-medium text-gray-700">{fmt(b.weight)} กก.</span>
               </div>
             ))}
           </div>
         </div>
-
-        <button
-          onClick={() => { setBags([]); setDone(false); setWeighDate(getToday()); }}
-          className="w-full bg-orange-500 text-white rounded-xl py-3 font-semibold"
-        >
-          บันทึกรอบใหม่
-        </button>
       </div>
+
+      {/* ปุ่มอยู่นอกกรอบ — แคปแค่กรอบข้างบน */}
+      <button
+        onClick={() => { setBags([]); setDone(false); setWeighDate(getToday()); }}
+        className="w-full max-w-sm bg-orange-500 text-white rounded-xl py-3 font-semibold"
+      >
+        บันทึกรอบใหม่
+      </button>
     </div>
   );
 
@@ -257,7 +262,7 @@ export default function ChickenReceivePage() {
                   className={`py-4 rounded-xl font-semibold text-sm flex flex-col items-center gap-1 border-2 transition-all
                     ${currentType === "chicken" ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-600 border-gray-200"}`}
                 >
-                  <span className="text-2xl">🐔</span>ไก่
+                  <span className="text-2xl">🐔</span>ตอน
                 </button>
                 <button
                   onClick={() => setCurrentType("offal")}
@@ -302,7 +307,7 @@ export default function ChickenReceivePage() {
             <div className="space-y-2">
               {bags.map(b => (
                 <div key={b.bag_no} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-500">ถุง {b.bag_no} · {b.type === "chicken" ? "🐔 ไก่" : "🫀 เครื่องใน"}</span>
+                  <span className="text-gray-500">ถุง {b.bag_no} · {b.type === "chicken" ? "🐔 ตอน" : "🫀 เครื่องใน"}</span>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{fmt(b.weight)} กก.</span>
                     <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs px-1">✕</button>
@@ -315,7 +320,7 @@ export default function ChickenReceivePage() {
             <div className="border-t mt-3 pt-3 space-y-1 text-sm">
               {totalChicken > 0 && (
                 <div className="flex justify-between text-orange-700 font-medium">
-                  <span>🐔 ไก่รวม</span><span>{fmt(totalChicken)} กก.</span>
+                  <span>🐔 ตอนรวม</span><span>{fmt(totalChicken)} กก.</span>
                 </div>
               )}
               {totalOffal > 0 && (
