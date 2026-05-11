@@ -108,7 +108,7 @@ export default function ChickenReceivePage() {
     setCurrentWeight("");
     setPendingBag(false);
     setScanError("");
-    setCurrentType("chicken");
+    // ไม่ reset currentType — อยู่ tab เดิม
   };
 
   const removeBag = (bag_no: number) => {
@@ -209,7 +209,7 @@ export default function ChickenReceivePage() {
             {bags.map(b => (
               <div key={b.bag_no} className="flex justify-between text-sm">
                 <span className="text-gray-400">
-                  {b.bag_no}. {b.type === "chicken" ? "ตอน" : "เครื่องใน"}
+                  {b.bag_no}. {bagLabel(b.type)}
                 </span>
                 <span className="font-medium text-gray-700">{fmt(b.weight)} กก.</span>
               </div>
@@ -228,121 +228,127 @@ export default function ChickenReceivePage() {
     </div>
   );
 
+  const activeTab = BAG_TYPES.find(t => t.type === currentType)!;
+
   // ── Main screen ──
   return (
     <div className="min-h-screen bg-orange-50 pb-12">
-      <div className="bg-orange-500 text-white p-4 text-center shadow">
-        <h1 className="text-lg font-bold">⚖️ ชั่งน้ำหนักไก่</h1>
-        <p className="text-xs opacity-75">ถ่ายรูปตาชั่งทีละถุง</p>
+
+      {/* Header + วันที่ */}
+      <div className="bg-orange-500 text-white px-4 pt-4 pb-0 shadow">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-lg font-bold">⚖️ ชั่งน้ำหนักไก่</h1>
+          <input type="date" value={weighDate} onChange={e => setWeighDate(e.target.value)}
+            className="text-sm bg-orange-400 text-white rounded-lg px-2 py-1 border border-orange-300 focus:outline-none" />
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex overflow-x-auto gap-1 pb-0 scrollbar-hide">
+          {BAG_TYPES.map(t => {
+            const count = countByType(t.type);
+            const isActive = currentType === t.type;
+            return (
+              <button
+                key={t.type}
+                onClick={() => { setCurrentType(t.type); setPendingBag(false); setCurrentWeight(""); setScanError(""); }}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-t-xl text-sm font-semibold transition-all
+                  ${isActive ? "bg-white text-gray-800" : "bg-orange-400 text-white opacity-80"}`}
+              >
+                {t.emoji} {t.label}
+                {count > 0 && (
+                  <span className={`text-xs rounded-full px-1.5 py-0.5 ${isActive ? "bg-orange-100 text-orange-600" : "bg-orange-600 text-white"}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
 
-        {/* วันที่ */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <label className="text-sm text-gray-500 block mb-1">วันที่รับของ</label>
-          <input type="date" value={weighDate} onChange={e => setWeighDate(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg p-2 text-gray-800" />
-        </div>
+        {/* ── การ์ดบันทึกถุง — สีตาม tab ── */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className={`px-4 py-2 text-sm font-medium text-white flex items-center gap-2 ${activeTab.active.split(" ")[0]}`}>
+            <span>{activeTab.emoji}</span>
+            <span>บันทึกถุง {activeTab.label} — ถุงที่ {bags.filter(b => b.type === currentType).length + 1}</span>
+          </div>
 
-        {/* ── ถ่ายรูปตาชั่ง ── */}
-        <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-          <p className="text-sm font-medium text-gray-700">บันทึกถุงใหม่</p>
+          <div className="p-4 space-y-3">
+            <input ref={fileRef} type="file" accept="image/*" capture="environment"
+              className="hidden" onChange={handleFileChange} />
 
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
-            className="hidden" onChange={handleFileChange} />
-
-          {!pendingBag ? (
-            <div className="space-y-2">
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={scanning}
-                className="w-full bg-orange-500 text-white rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:bg-orange-600"
-              >
-                <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
-                <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
-                <span className="text-xs opacity-75">ถุงที่ {bags.length + 1}</span>
-              </button>
-              <button
-                onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
-                className="w-full bg-white border-2 border-orange-300 text-orange-600 rounded-xl py-3 font-semibold text-sm"
-              >
-                ⌨️ พิมพ์น้ำหนักเอง
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* น้ำหนักที่ AI อ่านได้ */}
-              <div>
-                <p className="text-xs text-gray-400 mb-1">น้ำหนัก (กก.) — แก้ได้ถ้าอ่านผิด</p>
-                <input
-                  type="number" inputMode="decimal" value={currentWeight}
-                  onChange={e => setCurrentWeight(e.target.value)}
-                  className="w-full border-2 border-orange-300 rounded-xl p-3 text-center text-2xl font-bold focus:outline-none focus:border-orange-500"
-                  placeholder="0.00"
-                />
+            {!pendingBag ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={scanning}
+                  className={`w-full text-white rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:opacity-80 ${activeTab.active.split(" ")[0]}`}
+                >
+                  <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
+                  <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
+                </button>
+                <button
+                  onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
+                  className="w-full bg-white border-2 border-gray-200 text-gray-600 rounded-xl py-3 font-semibold text-sm"
+                >
+                  ⌨️ พิมพ์น้ำหนักเอง
+                </button>
               </div>
-
-              {/* เลือกประเภท */}
-              <div className="grid grid-cols-3 gap-2">
-                {BAG_TYPES.map(t => (
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">น้ำหนัก (กก.) — แก้ได้ถ้าอ่านผิด</p>
+                  <input
+                    type="number" inputMode="decimal" value={currentWeight}
+                    onChange={e => setCurrentWeight(e.target.value)}
+                    className="w-full border-2 border-orange-300 rounded-xl p-3 text-center text-2xl font-bold focus:outline-none focus:border-orange-500"
+                    placeholder="0.000" autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
                   <button
-                    key={t.type}
-                    onClick={() => setCurrentType(t.type)}
-                    className={`py-3 rounded-xl font-semibold text-sm flex flex-col items-center gap-1 border-2 transition-all
-                      ${currentType === t.type ? t.active : t.color}`}
+                    onClick={() => { setPendingBag(false); setCurrentWeight(""); setScanError(""); }}
+                    className="flex-1 bg-gray-100 text-gray-600 rounded-xl py-3 font-semibold"
                   >
-                    <span className="text-xl">{t.emoji}</span>
-                    {t.label}
+                    ยกเลิก
                   </button>
-                ))}
+                  <button
+                    onClick={addBag}
+                    className="flex-1 bg-green-500 text-white rounded-xl py-3 font-semibold"
+                  >
+                    ✓ บันทึกถุงนี้
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setPendingBag(false); setCurrentWeight(""); setScanError(""); }}
-                  className="flex-1 bg-gray-100 text-gray-600 rounded-xl py-3 font-semibold"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={addBag}
-                  className="flex-1 bg-green-500 text-white rounded-xl py-3 font-semibold"
-                >
-                  ✓ บันทึกถุงนี้
-                </button>
+            {scanError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">
+                ⚠️ {scanError}
+                <button onClick={() => fileRef.current?.click()} className="ml-2 underline">ถ่ายใหม่</button>
               </div>
-            </div>
-          )}
-
-          {scanError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">
-              ⚠️ {scanError}
-              <button onClick={() => fileRef.current?.click()} className="ml-2 underline">ถ่ายใหม่</button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* ── รายการถุงที่บันทึกแล้ว ── */}
+        {/* ── รายการถุงทั้งหมด ── */}
         {bags.length > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-sm font-medium text-gray-700">ถุงที่บันทึกแล้ว ({bags.length} ถุง)</p>
-            </div>
-            <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-700 mb-3">ถุงที่บันทึกแล้ว ({bags.length} ถุง)</p>
+            <div className="space-y-1.5">
               {bags.map(b => (
                 <div key={b.bag_no} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-500">ถุง {b.bag_no}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleType(b.bag_no)}
-                      className={`text-xs px-2 py-1 rounded-lg font-medium border ${bagStyle(b.type, false)}`}
-                    >
-                      {bagLabel(b.type)}
-                    </button>
-                    <span className="font-semibold">{fmt(b.weight)} กก.</span>
-                    <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs px-1">✕</button>
-                  </div>
+                  <span className="text-gray-400 w-6">{b.bag_no}.</span>
+                  <button
+                    onClick={() => toggleType(b.bag_no)}
+                    className={`text-xs px-2 py-1 rounded-lg font-medium border ${bagStyle(b.type, false)}`}
+                  >
+                    {bagLabel(b.type)}
+                  </button>
+                  <span className="font-semibold flex-1 text-right mr-2">{fmt(b.weight)} กก.</span>
+                  <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs">✕</button>
                 </div>
               ))}
             </div>
