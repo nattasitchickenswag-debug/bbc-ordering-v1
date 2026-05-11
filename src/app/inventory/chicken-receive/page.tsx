@@ -9,7 +9,7 @@ function getToday() {
 }
 
 function fmt(n: number) {
-  return n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("th-TH", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 }
 
 function fmtDate(s: string) {
