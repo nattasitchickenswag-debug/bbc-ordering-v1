@@ -17,7 +17,7 @@ function fmtDate(s: string) {
   return `${dd}/${m}/${parseInt(y) + 543}`;
 }
 
-type BagType = "chicken" | "nsot" | "nom" | "kha" | "offal";
+type BagType = "chicken" | "offal" | "nsot" | "nom" | "kha" | "blood";
 
 const BAG_TYPES: { type: BagType; label: string; emoji: string; color: string; active: string }[] = [
   { type: "chicken", label: "ตอน",       emoji: "🐔", color: "border-orange-200 text-orange-600 bg-white",  active: "bg-orange-500 text-white border-orange-500" },
@@ -25,6 +25,7 @@ const BAG_TYPES: { type: BagType; label: string; emoji: string; color: string; a
   { type: "nsot",    label: "นสต.",      emoji: "🍗", color: "border-yellow-200 text-yellow-600 bg-white",  active: "bg-yellow-500 text-white border-yellow-500" },
   { type: "nom",     label: "นม",        emoji: "🥛", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
   { type: "kha",     label: "ขาไก่",     emoji: "🦵", color: "border-green-200 text-green-600 bg-white",    active: "bg-green-500 text-white border-green-500" },
+  { type: "blood",   label: "เลือด",     emoji: "🩸", color: "border-red-200 text-red-600 bg-white",         active: "bg-red-500 text-white border-red-500" },
 ];
 
 function bagLabel(type: BagType) {
@@ -36,6 +37,12 @@ function bagStyle(type: BagType, active: boolean) {
   const t = BAG_TYPES.find(b => b.type === type);
   return t ? (active ? t.active : t.color) : "";
 }
+
+function bagUnit(type: BagType) { return type === "blood" ? "ก้อน" : "กก."; }
+function bagFmt(type: BagType, val: number) {
+  return type === "blood" ? String(Math.round(val)) : fmt(val);
+}
+const WEIGH_TYPES: BagType[] = ["chicken", "offal", "nsot", "nom", "kha"];
 
 type Bag = {
   bag_no: number;
@@ -151,7 +158,7 @@ export default function ChickenReceivePage() {
   // ── คำนวณยอดรวม ──
   const totalByType = (t: BagType) => bags.filter(b => b.type === t).reduce((s, b) => s + b.weight, 0);
   const countByType = (t: BagType) => bags.filter(b => b.type === t).length;
-  const totalChicken = BAG_TYPES.filter(t => t.type !== "offal").reduce((s, t) => s + totalByType(t.type), 0);
+  const totalChicken = WEIGH_TYPES.filter(t => t !== "offal").reduce((s, t) => s + totalByType(t), 0);
   const totalOffal = totalByType("offal");
   const chickenBags = bags.filter(b => b.type !== "offal").length;
   const offalBags = countByType("offal");
@@ -214,7 +221,7 @@ export default function ChickenReceivePage() {
             return (
               <div key={t.type} className="flex justify-between items-baseline">
                 <span className="text-gray-600 font-medium">{t.emoji} {t.label}</span>
-                <span className="text-lg font-bold text-gray-800">{fmt(total)} กก. <span className="text-sm font-normal text-gray-400">({count} ถุง)</span></span>
+                <span className="text-lg font-bold text-gray-800">{bagFmt(t.type, total)} {bagUnit(t.type)} <span className="text-sm font-normal text-gray-400">({count}{t.type === "blood" ? "" : " ถุง"})</span></span>
               </div>
             );
           })}
@@ -232,7 +239,7 @@ export default function ChickenReceivePage() {
                 <span className="text-gray-400">
                   {b.bag_no}. {bagLabel(b.type)}
                 </span>
-                <span className="font-medium text-gray-700">{fmt(b.weight)} กก.</span>
+                <span className="font-medium text-gray-700">{bagFmt(b.type, b.weight)} {bagUnit(b.type)}</span>
               </div>
             ))}
           </div>
@@ -302,30 +309,47 @@ export default function ChickenReceivePage() {
 
             {!pendingBag ? (
               <div className="space-y-2">
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  disabled={scanning}
-                  className={`w-full text-white rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:opacity-80 ${activeTab.active.split(" ")[0]}`}
-                >
-                  <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
-                  <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
-                </button>
-                <button
-                  onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
-                  className="w-full bg-white border-2 border-gray-200 text-gray-600 rounded-xl py-3 font-semibold text-sm"
-                >
-                  ⌨️ พิมพ์น้ำหนักเอง
-                </button>
+                {currentType === "blood" ? (
+                  <button
+                    onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
+                    className="w-full bg-red-500 text-white rounded-xl py-5 font-semibold flex flex-col items-center gap-1"
+                  >
+                    <span className="text-3xl">🩸</span>
+                    <span>กรอกจำนวนก้อน</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={scanning}
+                      className={`w-full text-white rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:opacity-80 ${activeTab.active.split(" ")[0]}`}
+                    >
+                      <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
+                      <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
+                    </button>
+                    <button
+                      onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
+                      className="w-full bg-white border-2 border-gray-200 text-gray-600 rounded-xl py-3 font-semibold text-sm"
+                    >
+                      ⌨️ พิมพ์น้ำหนักเอง
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">น้ำหนัก (กก.) — แก้ได้ถ้าอ่านผิด</p>
+                  <p className="text-xs text-gray-400 mb-1">
+                    {currentType === "blood" ? "จำนวน (ก้อน)" : "น้ำหนัก (กก.) — แก้ได้ถ้าอ่านผิด"}
+                  </p>
                   <input
-                    type="number" inputMode="decimal" value={currentWeight}
+                    type="number"
+                    inputMode={currentType === "blood" ? "numeric" : "decimal"}
+                    value={currentWeight}
                     onChange={e => setCurrentWeight(e.target.value)}
                     className="w-full border-2 border-orange-300 rounded-xl p-3 text-center text-2xl font-bold focus:outline-none focus:border-orange-500"
-                    placeholder="0.000" autoFocus
+                    placeholder={currentType === "blood" ? "0" : "0.000"}
+                    autoFocus
                   />
                 </div>
                 <div className="flex gap-2">
@@ -339,7 +363,7 @@ export default function ChickenReceivePage() {
                     onClick={addBag}
                     className="flex-1 bg-green-500 text-white rounded-xl py-3 font-semibold"
                   >
-                    ✓ บันทึกถุงนี้
+                    ✓ บันทึก
                   </button>
                 </div>
               </div>
@@ -368,7 +392,7 @@ export default function ChickenReceivePage() {
                   >
                     {bagLabel(b.type)}
                   </button>
-                  <span className="font-semibold flex-1 text-right mr-2">{fmt(b.weight)} กก.</span>
+                  <span className="font-semibold flex-1 text-right mr-2">{bagFmt(b.type, b.weight)} {bagUnit(b.type)}</span>
                   <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs">✕</button>
                 </div>
               ))}
@@ -381,7 +405,7 @@ export default function ChickenReceivePage() {
                 if (total === 0) return null;
                 return (
                   <div key={t.type} className="flex justify-between font-medium text-gray-700">
-                    <span>{t.emoji} {t.label}</span><span>{fmt(total)} กก.</span>
+                    <span>{t.emoji} {t.label}</span><span>{bagFmt(t.type, total)} {bagUnit(t.type)}</span>
                   </div>
                 );
               })}
