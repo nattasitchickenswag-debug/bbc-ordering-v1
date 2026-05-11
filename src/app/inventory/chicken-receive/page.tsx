@@ -17,7 +17,25 @@ function fmtDate(s: string) {
   return `${dd}/${m}/${parseInt(y) + 543}`;
 }
 
-type BagType = "chicken" | "offal";
+type BagType = "chicken" | "nsot" | "nom" | "kha" | "offal";
+
+const BAG_TYPES: { type: BagType; label: string; emoji: string; color: string; active: string }[] = [
+  { type: "chicken", label: "ตอน",    emoji: "🐔", color: "border-orange-200 text-orange-600 bg-white",  active: "bg-orange-500 text-white border-orange-500" },
+  { type: "nsot",    label: "นสต.",   emoji: "🍗", color: "border-yellow-200 text-yellow-600 bg-white",  active: "bg-yellow-500 text-white border-yellow-500" },
+  { type: "nom",     label: "นม",     emoji: "🥛", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
+  { type: "kha",     label: "ขาไก่",  emoji: "🦵", color: "border-green-200 text-green-600 bg-white",    active: "bg-green-500 text-white border-green-500" },
+  { type: "offal",   label: "เครื่องใน", emoji: "🫀", color: "border-purple-200 text-purple-600 bg-white", active: "bg-purple-500 text-white border-purple-500" },
+];
+
+function bagLabel(type: BagType) {
+  const t = BAG_TYPES.find(b => b.type === type);
+  return t ? `${t.emoji} ${t.label}` : type;
+}
+
+function bagStyle(type: BagType, active: boolean) {
+  const t = BAG_TYPES.find(b => b.type === type);
+  return t ? (active ? t.active : t.color) : "";
+}
 
 type Bag = {
   bag_no: number;
@@ -101,18 +119,21 @@ export default function ChickenReceivePage() {
   };
 
   const toggleType = (bag_no: number) => {
-    setBags(prev => prev.map(b =>
-      b.bag_no === bag_no
-        ? { ...b, type: b.type === "chicken" ? "offal" : "chicken" }
-        : b
-    ));
+    const order: BagType[] = ["chicken", "nsot", "nom", "kha", "offal"];
+    setBags(prev => prev.map(b => {
+      if (b.bag_no !== bag_no) return b;
+      const idx = order.indexOf(b.type);
+      return { ...b, type: order[(idx + 1) % order.length] };
+    }));
   };
 
   // ── คำนวณยอดรวม ──
-  const totalChicken = bags.filter(b => b.type === "chicken").reduce((s, b) => s + b.weight, 0);
-  const totalOffal = bags.filter(b => b.type === "offal").reduce((s, b) => s + b.weight, 0);
-  const chickenBags = bags.filter(b => b.type === "chicken").length;
-  const offalBags = bags.filter(b => b.type === "offal").length;
+  const totalByType = (t: BagType) => bags.filter(b => b.type === t).reduce((s, b) => s + b.weight, 0);
+  const countByType = (t: BagType) => bags.filter(b => b.type === t).length;
+  const totalChicken = BAG_TYPES.filter(t => t.type !== "offal").reduce((s, t) => s + totalByType(t.type), 0);
+  const totalOffal = totalByType("offal");
+  const chickenBags = bags.filter(b => b.type !== "offal").length;
+  const offalBags = countByType("offal");
 
   // ── Submit ──
   const doSubmit = async () => {
@@ -165,21 +186,20 @@ export default function ChickenReceivePage() {
 
         {/* ยอดหลัก */}
         <div className="space-y-2 mb-4">
-          {totalChicken > 0 && (
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-600 font-medium">🐔 ไก่ตอน</span>
-              <span className="text-xl font-bold text-orange-600">{fmt(totalChicken)} กก.</span>
-            </div>
-          )}
-          {totalOffal > 0 && (
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-600 font-medium">🫀 เครื่องใน</span>
-              <span className="text-xl font-bold text-purple-600">{fmt(totalOffal)} กก.</span>
-            </div>
-          )}
+          {BAG_TYPES.map(t => {
+            const total = totalByType(t.type);
+            const count = countByType(t.type);
+            if (total === 0) return null;
+            return (
+              <div key={t.type} className="flex justify-between items-baseline">
+                <span className="text-gray-600 font-medium">{t.emoji} {t.label}</span>
+                <span className="text-lg font-bold text-gray-800">{fmt(total)} กก. <span className="text-sm font-normal text-gray-400">({count} ถุง)</span></span>
+              </div>
+            );
+          })}
           <div className="flex justify-between text-sm text-gray-400 border-t pt-2">
-            <span>รวม</span>
-            <span>{bags.length} ถุง ({chickenBags > 0 ? `ตอน ${chickenBags}` : ""}{chickenBags > 0 && offalBags > 0 ? ", " : ""}{offalBags > 0 ? `เครื่องใน ${offalBags}` : ""})</span>
+            <span>รวมทั้งหมด</span>
+            <span>{bags.length} ถุง</span>
           </div>
         </div>
 
@@ -264,21 +284,18 @@ export default function ChickenReceivePage() {
               </div>
 
               {/* เลือกประเภท */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setCurrentType("chicken")}
-                  className={`py-4 rounded-xl font-semibold text-sm flex flex-col items-center gap-1 border-2 transition-all
-                    ${currentType === "chicken" ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-600 border-gray-200"}`}
-                >
-                  <span className="text-2xl">🐔</span>ตอน
-                </button>
-                <button
-                  onClick={() => setCurrentType("offal")}
-                  className={`py-4 rounded-xl font-semibold text-sm flex flex-col items-center gap-1 border-2 transition-all
-                    ${currentType === "offal" ? "bg-purple-500 text-white border-purple-500" : "bg-white text-gray-600 border-gray-200"}`}
-                >
-                  <span className="text-2xl">🫀</span>เครื่องใน
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {BAG_TYPES.map(t => (
+                  <button
+                    key={t.type}
+                    onClick={() => setCurrentType(t.type)}
+                    className={`py-3 rounded-xl font-semibold text-sm flex flex-col items-center gap-1 border-2 transition-all
+                      ${currentType === t.type ? t.active : t.color}`}
+                  >
+                    <span className="text-xl">{t.emoji}</span>
+                    {t.label}
+                  </button>
+                ))}
               </div>
 
               <div className="flex gap-2">
@@ -319,9 +336,9 @@ export default function ChickenReceivePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleType(b.bag_no)}
-                      className={`text-xs px-2 py-1 rounded-lg font-medium border ${b.type === "chicken" ? "bg-orange-100 text-orange-600 border-orange-200" : "bg-purple-100 text-purple-600 border-purple-200"}`}
+                      className={`text-xs px-2 py-1 rounded-lg font-medium border ${bagStyle(b.type, false)}`}
                     >
-                      {b.type === "chicken" ? "🐔 ตอน" : "🫀 เครื่องใน"}
+                      {bagLabel(b.type)}
                     </button>
                     <span className="font-semibold">{fmt(b.weight)} กก.</span>
                     <button onClick={() => removeBag(b.bag_no)} className="text-red-400 text-xs px-1">✕</button>
@@ -332,16 +349,15 @@ export default function ChickenReceivePage() {
 
             {/* สรุปย่อ */}
             <div className="border-t mt-3 pt-3 space-y-1 text-sm">
-              {totalChicken > 0 && (
-                <div className="flex justify-between text-orange-700 font-medium">
-                  <span>🐔 ตอนรวม</span><span>{fmt(totalChicken)} กก.</span>
-                </div>
-              )}
-              {totalOffal > 0 && (
-                <div className="flex justify-between text-purple-700 font-medium">
-                  <span>🫀 เครื่องในรวม</span><span>{fmt(totalOffal)} กก.</span>
-                </div>
-              )}
+              {BAG_TYPES.map(t => {
+                const total = totalByType(t.type);
+                if (total === 0) return null;
+                return (
+                  <div key={t.type} className="flex justify-between font-medium text-gray-700">
+                    <span>{t.emoji} {t.label}</span><span>{fmt(total)} กก.</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
