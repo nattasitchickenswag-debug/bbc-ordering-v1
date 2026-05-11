@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         role: "user",
         content: [
           { type: "text", text: SCALE_PROMPT },
-          { type: "image_url", image_url: { url: image, detail: "high" } },
+          { type: "image_url", image_url: { url: image, detail: "low" } },
         ],
       }],
       max_tokens: 100,

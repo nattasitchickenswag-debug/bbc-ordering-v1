@@ -216,15 +216,23 @@ export default function ChickenReceivePage() {
             className="hidden" onChange={handleFileChange} />
 
           {!pendingBag ? (
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={scanning}
-              className="w-full bg-orange-500 text-white rounded-xl py-5 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:bg-orange-600"
-            >
-              <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
-              <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
-              <span className="text-xs opacity-75">ถุงที่ {bags.length + 1}</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={scanning}
+                className="w-full bg-orange-500 text-white rounded-xl py-4 font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:bg-orange-600"
+              >
+                <span className="text-3xl">{scanning ? "⏳" : "📷"}</span>
+                <span>{scanning ? "กำลังอ่าน..." : "ถ่ายรูปตาชั่ง"}</span>
+                <span className="text-xs opacity-75">ถุงที่ {bags.length + 1}</span>
+              </button>
+              <button
+                onClick={() => { setCurrentWeight(""); setPendingBag(true); }}
+                className="w-full bg-white border-2 border-orange-300 text-orange-600 rounded-xl py-3 font-semibold text-sm"
+              >
+                ⌨️ พิมพ์น้ำหนักเอง
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {/* น้ำหนักที่ AI อ่านได้ */}
