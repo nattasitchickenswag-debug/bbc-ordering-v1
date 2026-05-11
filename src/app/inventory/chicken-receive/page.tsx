@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const RECEIVE_PIN = "5678";
 
@@ -20,11 +20,11 @@ function fmtDate(s: string) {
 type BagType = "chicken" | "nsot" | "nom" | "kha" | "offal";
 
 const BAG_TYPES: { type: BagType; label: string; emoji: string; color: string; active: string }[] = [
-  { type: "chicken", label: "ตอน",    emoji: "🐔", color: "border-orange-200 text-orange-600 bg-white",  active: "bg-orange-500 text-white border-orange-500" },
-  { type: "nsot",    label: "นสต.",   emoji: "🍗", color: "border-yellow-200 text-yellow-600 bg-white",  active: "bg-yellow-500 text-white border-yellow-500" },
-  { type: "nom",     label: "นม",     emoji: "🥛", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
-  { type: "kha",     label: "ขาไก่",  emoji: "🦵", color: "border-green-200 text-green-600 bg-white",    active: "bg-green-500 text-white border-green-500" },
-  { type: "offal",   label: "เครื่องใน", emoji: "🫀", color: "border-purple-200 text-purple-600 bg-white", active: "bg-purple-500 text-white border-purple-500" },
+  { type: "chicken", label: "ตอน",       emoji: "🐔", color: "border-orange-200 text-orange-600 bg-white",  active: "bg-orange-500 text-white border-orange-500" },
+  { type: "offal",   label: "เครื่องใน", emoji: "🫀", color: "border-purple-200 text-purple-600 bg-white",  active: "bg-purple-500 text-white border-purple-500" },
+  { type: "nsot",    label: "นสต.",      emoji: "🍗", color: "border-yellow-200 text-yellow-600 bg-white",  active: "bg-yellow-500 text-white border-yellow-500" },
+  { type: "nom",     label: "นม",        emoji: "🥛", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
+  { type: "kha",     label: "ขาไก่",     emoji: "🦵", color: "border-green-200 text-green-600 bg-white",    active: "bg-green-500 text-white border-green-500" },
 ];
 
 function bagLabel(type: BagType) {
@@ -52,7 +52,15 @@ export default function ChickenReceivePage() {
     return false;
   });
   const [weighDate, setWeighDate] = useState(getToday());
-  const [bags, setBags] = useState<Bag[]>([]);
+  const [bags, setBags] = useState<Bag[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("chicken_receive_bags");
+        return saved ? JSON.parse(saved) : [];
+      } catch { return []; }
+    }
+    return [];
+  });
 
   // สถานะถุงปัจจุบัน
   const [scanning, setScanning] = useState(false);
@@ -65,6 +73,11 @@ export default function ChickenReceivePage() {
   const [done, setDone] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // sync bags → sessionStorage ทุกครั้งที่เปลี่ยน
+  useEffect(() => {
+    sessionStorage.setItem("chicken_receive_bags", JSON.stringify(bags));
+  }, [bags]);
 
   // ── PIN ──
   const handlePin = (v: string) => {
@@ -156,7 +169,7 @@ export default function ChickenReceivePage() {
           bag_count: bags.length,
         }),
       });
-      if (res.ok) setDone(true);
+      if (res.ok) { sessionStorage.removeItem("chicken_receive_bags"); setDone(true); }
       else alert("เกิดข้อผิดพลาดครับ ลองใหม่อีกครั้ง");
     } catch { alert("เกิดข้อผิดพลาดครับ"); }
     finally { setSubmitting(false); }
@@ -225,7 +238,7 @@ export default function ChickenReceivePage() {
 
       {/* ปุ่มอยู่นอกกรอบ — แคปแค่กรอบข้างบน */}
       <button
-        onClick={() => { setBags([]); setDone(false); setWeighDate(getToday()); }}
+        onClick={() => { setBags([]); setDone(false); setWeighDate(getToday()); sessionStorage.removeItem("chicken_receive_bags"); }}
         className="w-full max-w-sm bg-orange-500 text-white rounded-xl py-3 font-semibold"
       >
         บันทึกรอบใหม่
