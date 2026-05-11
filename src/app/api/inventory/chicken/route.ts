@@ -3,45 +3,37 @@ import { NextResponse } from "next/server";
 
 async function ensureTable() {
   await sql`
-    CREATE TABLE IF NOT EXISTS chicken_bills (
-      id           SERIAL PRIMARY KEY,
-      bill_date    DATE NOT NULL,
-      ton_count    INTEGER       DEFAULT 0,
-      ton_weight   NUMERIC(8,2)  DEFAULT 0,
-      ton_price    NUMERIC(8,2)  DEFAULT 0,
-      ton_total    NUMERIC(10,2) DEFAULT 0,
-      nsot_weight  NUMERIC(8,2)  DEFAULT 0,
-      nsot_price   NUMERIC(8,2)  DEFAULT 0,
-      nsot_total   NUMERIC(10,2) DEFAULT 0,
-      nom_weight   NUMERIC(8,2)  DEFAULT 0,
-      nom_price    NUMERIC(8,2)  DEFAULT 0,
-      nom_total    NUMERIC(10,2) DEFAULT 0,
-      kha_weight   NUMERIC(8,2)  DEFAULT 0,
-      kha_price    NUMERIC(8,2)  DEFAULT 0,
-      kha_total    NUMERIC(10,2) DEFAULT 0,
-      blood_count  INTEGER       DEFAULT 0,
-      blood_price  NUMERIC(8,2)  DEFAULT 0,
-      blood_total  NUMERIC(10,2) DEFAULT 0,
-      grand_total  NUMERIC(10,2) DEFAULT 0,
-      note         TEXT,
-      created_at   TIMESTAMPTZ   DEFAULT NOW()
+    CREATE TABLE IF NOT EXISTS chicken_weigh_sessions (
+      id             SERIAL PRIMARY KEY,
+      weigh_date     DATE NOT NULL UNIQUE,
+      bags           JSONB NOT NULL DEFAULT '[]',
+      total_chicken  NUMERIC(8,2) DEFAULT 0,
+      total_offal    NUMERIC(8,2) DEFAULT 0,
+      bag_count      INTEGER DEFAULT 0,
+      created_at     TIMESTAMPTZ DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  // เพิ่ม column ขาไก่ ถ้ายังไม่มี (สำหรับ table เก่า)
-  await sql`ALTER TABLE chicken_bills ADD COLUMN IF NOT EXISTS kha_weight  NUMERIC(8,2)  DEFAULT 0`;
-  await sql`ALTER TABLE chicken_bills ADD COLUMN IF NOT EXISTS kha_price   NUMERIC(8,2)  DEFAULT 0`;
-  await sql`ALTER TABLE chicken_bills ADD COLUMN IF NOT EXISTS kha_total   NUMERIC(10,2) DEFAULT 0`;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await ensureTable();
+    const { searchParams } = new URL(req.url);
+    const date = searchParams.get("date");
+
+    if (date) {
+      const { rows } = await sql`
+        SELECT * FROM chicken_weigh_sessions WHERE weigh_date = ${date}
+      `;
+      return NextResponse.json({ session: rows[0] || null });
+    }
+
     const { rows } = await sql`
-      SELECT * FROM chicken_bills
-      ORDER BY bill_date DESC, created_at DESC
-      LIMIT 10
+      SELECT * FROM chicken_weigh_sessions
+      ORDER BY weigh_date DESC LIMIT 10
     `;
-    return NextResponse.json({ bills: rows });
+    return NextResponse.json({ sessions: rows });
   } catch (err) {
     console.error("GET /api/inventory/chicken:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -52,25 +44,17 @@ export async function POST(req: Request) {
   try {
     await ensureTable();
     const b = await req.json();
+    const { weigh_date, bags, total_chicken, total_offal, bag_count } = b;
 
     await sql`
-      INSERT INTO chicken_bills (
-        bill_date,
-        ton_count,  ton_weight,  ton_price,  ton_total,
-        nsot_weight, nsot_price, nsot_total,
-        nom_weight,  nom_price,  nom_total,
-        kha_weight,  kha_price,  kha_total,
-        blood_count, blood_price, blood_total,
-        grand_total, note
-      ) VALUES (
-        ${b.bill_date},
-        ${b.ton_count  ?? 0}, ${b.ton_weight  ?? 0}, ${b.ton_price  ?? 0}, ${b.ton_total  ?? 0},
-        ${b.nsot_weight ?? 0}, ${b.nsot_price ?? 0}, ${b.nsot_total ?? 0},
-        ${b.nom_weight  ?? 0}, ${b.nom_price  ?? 0}, ${b.nom_total  ?? 0},
-        ${b.kha_weight  ?? 0}, ${b.kha_price  ?? 0}, ${b.kha_total  ?? 0},
-        ${b.blood_count ?? 0}, ${b.blood_price ?? 0}, ${b.blood_total ?? 0},
-        ${b.grand_total ?? 0}, ${b.note ?? null}
-      )
+      INSERT INTO chicken_weigh_sessions (weigh_date, bags, total_chicken, total_offal, bag_count, updated_at)
+      VALUES (${weigh_date}, ${JSON.stringify(bags)}, ${total_chicken}, ${total_offal}, ${bag_count}, NOW())
+      ON CONFLICT (weigh_date) DO UPDATE SET
+        bags = EXCLUDED.bags,
+        total_chicken = EXCLUDED.total_chicken,
+        total_offal = EXCLUDED.total_offal,
+        bag_count = EXCLUDED.bag_count,
+        updated_at = NOW()
     `;
     return NextResponse.json({ ok: true });
   } catch (err) {
