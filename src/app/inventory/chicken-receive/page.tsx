@@ -23,7 +23,7 @@ const BAG_TYPES: { type: BagType; label: string; emoji: string; color: string; a
   { type: "chicken", label: "ตอน",       emoji: "🐔", color: "border-orange-200 text-orange-600 bg-white",  active: "bg-orange-500 text-white border-orange-500" },
   { type: "offal",   label: "เครื่องใน", emoji: "🫀", color: "border-purple-200 text-purple-600 bg-white",  active: "bg-purple-500 text-white border-purple-500" },
   { type: "nsot",    label: "นสต.",      emoji: "🍗", color: "border-yellow-200 text-yellow-600 bg-white",  active: "bg-yellow-500 text-white border-yellow-500" },
-  { type: "nom",     label: "นม",        emoji: "🥛", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
+  { type: "nom",     label: "มันไก่",    emoji: "🧈", color: "border-blue-200 text-blue-600 bg-white",      active: "bg-blue-500 text-white border-blue-500" },
   { type: "kha",     label: "ขาไก่",     emoji: "🦵", color: "border-green-200 text-green-600 bg-white",    active: "bg-green-500 text-white border-green-500" },
   { type: "blood",   label: "เลือด",     emoji: "🩸", color: "border-red-200 text-red-600 bg-white",         active: "bg-red-500 text-white border-red-500" },
 ];
