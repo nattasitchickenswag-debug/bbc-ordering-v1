@@ -47,7 +47,8 @@ function bagFmt(type: BagType, val: number) {
 
 const WEIGH_TYPES: BagType[] = ["chicken", "offal", "nsot", "nom", "kha"];
 
-type Bag = { bag_no: number; type: BagType; weight: number };
+type InputMethod = "camera" | "album" | "manual";
+type Bag = { bag_no: number; type: BagType; weight: number; input_method: InputMethod };
 
 type QueueItem = {
   id: number;
@@ -55,6 +56,7 @@ type QueueItem = {
   type: BagType;
   loading: boolean;
   error: string;
+  input_method: InputMethod;
 };
 
 export default function ChickenReceivePage() {
@@ -167,6 +169,7 @@ export default function ChickenReceivePage() {
       type: currentType,
       loading: true,
       error: "",
+      input_method: "album" as InputMethod,
     }));
     setQueue(prev => [...prev, ...newItems]);
 
@@ -213,7 +216,7 @@ export default function ChickenReceivePage() {
     setBags(prev => {
       const next = [...prev];
       valid.forEach(item => {
-        next.push({ bag_no: next.length + 1, type: item.type, weight: parseFloat(item.weight) });
+        next.push({ bag_no: next.length + 1, type: item.type, weight: parseFloat(item.weight), input_method: item.input_method });
       });
       return next;
     });
@@ -224,7 +227,8 @@ export default function ChickenReceivePage() {
   const addBag = () => {
     const w = parseFloat(currentWeight);
     if (!w || w <= 0) { alert("กรุณากรอกน้ำหนักก่อนครับ"); return; }
-    setBags(prev => [...prev, { bag_no: prev.length + 1, type: currentType, weight: w }]);
+    const method: InputMethod = capturedImage ? "camera" : "manual";
+    setBags(prev => [...prev, { bag_no: prev.length + 1, type: currentType, weight: w, input_method: method }]);
     setCurrentWeight("");
     setPendingBag(false);
     setScanError("");
@@ -284,12 +288,25 @@ export default function ChickenReceivePage() {
   );
 
   // ── Done screen ──
+  const methodLabel: Record<InputMethod, string> = { camera: "📷 ถ่ายรูป", album: "🖼️ โยนรูป", manual: "⌨️ พิมเอง" };
+  const methodCounts = bags.reduce<Record<InputMethod, number>>((acc, b) => {
+    acc[b.input_method] = (acc[b.input_method] || 0) + 1;
+    return acc;
+  }, {} as Record<InputMethod, number>);
+
   if (done) return (
     <div className="min-h-screen bg-orange-50 flex flex-col items-center justify-center p-4 gap-4">
       <div className="bg-white rounded-2xl shadow-lg p-5 w-full max-w-sm">
         <div className="text-center mb-4 border-b pb-3">
           <p className="text-xs text-gray-400 mb-1">ครัวกลาง BBC</p>
           <p className="text-lg font-bold text-gray-800">รับไก่ {fmtDate(weighDate)}</p>
+          <div className="flex flex-wrap justify-center gap-1 mt-2">
+            {(Object.entries(methodCounts) as [InputMethod, number][]).map(([m, c]) => (
+              <span key={m} className="text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-0.5">
+                {methodLabel[m]} {c} ถุง
+              </span>
+            ))}
+          </div>
         </div>
         <div className="space-y-2 mb-4">
           {BAG_TYPES.map(t => {
@@ -315,7 +332,10 @@ export default function ChickenReceivePage() {
             {bags.map(b => (
               <div key={b.bag_no} className="flex justify-between text-sm">
                 <span className="text-gray-400">{b.bag_no}. {bagLabel(b.type)}</span>
-                <span className="font-medium text-gray-700">{bagFmt(b.type, b.weight)} {bagUnit(b.type)}</span>
+                <span className="font-medium text-gray-700">
+                  {bagFmt(b.type, b.weight)} {bagUnit(b.type)}
+                  <span className="text-gray-300 text-xs ml-1">{b.input_method === "camera" ? "📷" : b.input_method === "album" ? "🖼️" : "⌨️"}</span>
+                </span>
               </div>
             ))}
           </div>
