@@ -50,11 +50,11 @@ export async function POST(req: Request) {
       INSERT INTO chicken_weigh_sessions (weigh_date, bags, total_chicken, total_offal, bag_count, updated_at)
       VALUES (${weigh_date}, ${JSON.stringify(bags)}, ${total_chicken}, ${total_offal}, ${bag_count}, NOW())
       ON CONFLICT (weigh_date) DO UPDATE SET
-        bags = EXCLUDED.bags,
-        total_chicken = EXCLUDED.total_chicken,
-        total_offal = EXCLUDED.total_offal,
-        bag_count = EXCLUDED.bag_count,
-        updated_at = NOW()
+        bags          = chicken_weigh_sessions.bags || EXCLUDED.bags,
+        total_chicken = chicken_weigh_sessions.total_chicken + EXCLUDED.total_chicken,
+        total_offal   = chicken_weigh_sessions.total_offal   + EXCLUDED.total_offal,
+        bag_count     = chicken_weigh_sessions.bag_count     + EXCLUDED.bag_count,
+        updated_at    = NOW()
     `;
     return NextResponse.json({ ok: true });
   } catch (err) {
