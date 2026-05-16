@@ -104,12 +104,34 @@ export default function ChickenBillPage() {
   const [weighSession, setWeighSession]     = useState<{ bags?: Array<{ type: string; weight: number }> } | null>(null);
   const [submitError, setSubmitError]       = useState("");
 
-  // โหลดราคาที่บันทึกไว้ครั้งล่าสุด
+  // โหลดราคาจากบิลล่าสุดใน DB (ใช้ได้ทุกอุปกรณ์)
   useEffect(() => {
-    const prices = loadSavedPrices();
-    if (Object.keys(prices).length > 0) {
-      setItems(prev => applyPricesToItems(prev, prices));
-    }
+    fetch("/api/inventory/bill")
+      .then(r => r.json())
+      .then(data => {
+        const lastBill = data.bills?.[0];
+        if (!lastBill?.items?.length) {
+          // ไม่มีบิลใน DB → fallback localStorage
+          const prices = loadSavedPrices();
+          if (Object.keys(prices).length > 0)
+            setItems(prev => applyPricesToItems(prev, prices));
+          return;
+        }
+        // ดึงราคาจากรายการในบิลล่าสุด
+        const prices: Record<string, string> = {};
+        for (const item of lastBill.items as Array<{ type: string; price_per_kg?: number; price_per_piece?: number }>) {
+          if (item.price_per_kg)    prices[`${item.type}_per_kg`]    = String(item.price_per_kg);
+          if (item.price_per_piece) prices[`${item.type}_per_piece`] = String(item.price_per_piece);
+        }
+        if (Object.keys(prices).length > 0)
+          setItems(prev => applyPricesToItems(prev, prices));
+      })
+      .catch(() => {
+        // ถ้า fetch ไม่ได้ → fallback localStorage
+        const prices = loadSavedPrices();
+        if (Object.keys(prices).length > 0)
+          setItems(prev => applyPricesToItems(prev, prices));
+      });
   }, []);
 
   /* ── PIN ── */
