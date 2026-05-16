@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const PRICE_STORAGE_KEY = "chicken_bill_prices";
 
 const PIN = "2569";
 
@@ -31,6 +33,34 @@ const defaultItem = (): ItemState => ({
   enabled: false, qty_heads: "", weight_kg: "",
   price_per_kg: "", qty_pieces: "", price_per_piece: "", name: "",
 });
+
+function loadSavedPrices(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(PRICE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function savePrices(items: Items) {
+  const prices: Record<string, string> = {};
+  for (const [type, item] of Object.entries(items)) {
+    if (item.price_per_kg)    prices[`${type}_per_kg`]    = item.price_per_kg;
+    if (item.price_per_piece) prices[`${type}_per_piece`] = item.price_per_piece;
+  }
+  localStorage.setItem(PRICE_STORAGE_KEY, JSON.stringify(prices));
+}
+
+function applyPricesToItems(items: Items, prices: Record<string, string>): Items {
+  const result = { ...items } as Items;
+  for (const type of Object.keys(result) as BagType[]) {
+    result[type] = {
+      ...result[type],
+      price_per_kg:    prices[`${type}_per_kg`]    ?? result[type].price_per_kg,
+      price_per_piece: prices[`${type}_per_piece`] ?? result[type].price_per_piece,
+    };
+  }
+  return result;
+}
 
 function calcTotal(type: string, item: ItemState): number {
   if (type === "blood") {
@@ -74,6 +104,14 @@ export default function ChickenBillPage() {
   const [weighSession, setWeighSession]     = useState<{ bags?: Array<{ type: string; weight: number }> } | null>(null);
   const [submitError, setSubmitError]       = useState("");
 
+  // โหลดราคาที่บันทึกไว้ครั้งล่าสุด
+  useEffect(() => {
+    const prices = loadSavedPrices();
+    if (Object.keys(prices).length > 0) {
+      setItems(prev => applyPricesToItems(prev, prices));
+    }
+  }, []);
+
   /* ── PIN ── */
   const handlePin = () => {
     if (pin === PIN) { setAuthed(true); }
@@ -108,6 +146,7 @@ export default function ChickenBillPage() {
       });
 
     try {
+      savePrices(items); // บันทึกราคาลง localStorage
       const res  = await fetch("/api/inventory/bill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -205,39 +244,51 @@ export default function ChickenBillPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {comparableTypes.map(cfg => {
-                      const item      = items[cfg.type as BagType];
-                      const isBlood   = cfg.type === "blood";
-                      const unit      = isBlood ? "ก้อน" : "กก.";
-                      const billVal   = isBlood
-                        ? (parseFloat(item.qty_pieces) || 0)
-                        : (parseFloat(item.weight_kg) || 0);
-                      const weighVal  = weighedByType[cfg.type] || 0;
-                      const diff      = billVal - weighVal;
-                      const noData    = weighVal === 0 && billVal > 0;
-                      const diffColor = noData
-                        ? "text-gray-400"
-                        : Math.abs(diff) < 0.05
-                          ? "text-green-600"
-                          : diff > 0
-                            ? "text-red-500"
-                            : "text-blue-500";
+                    {comparableTypes
+                      .filter(cfg => cfg.type !== "offal") // เครื่องในรวมกับไก่ตอนแถวเดียว
+                      .map(cfg => {
+                        const item    = items[cfg.type as BagType];
+                        const isBlood = cfg.type === "blood";
+                        const unit    = isBlood ? "ก้อน" : "กก.";
 
-                      return (
-                        <tr key={cfg.type} className="border-b last:border-0">
-                          <td className="py-2">{cfg.emoji} {cfg.label}</td>
-                          <td className="text-right py-2">
-                            {billVal.toFixed(isBlood ? 0 : 2)} {unit}
-                          </td>
-                          <td className="text-right py-2 text-gray-500">
-                            {noData ? "—" : `${weighVal.toFixed(isBlood ? 0 : 2)} ${unit}`}
-                          </td>
-                          <td className={`text-right py-2 font-semibold ${diffColor}`}>
-                            {noData ? "—" : `${diff > 0 ? "+" : ""}${diff.toFixed(isBlood ? 0 : 2)} ${unit}`}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                        const billVal = isBlood
+                          ? (parseFloat(item.qty_pieces) || 0)
+                          : (parseFloat(item.weight_kg) || 0);
+
+                        // ไก่ตอน: ชั่งจริง = chicken + offal รวมกัน
+                        const weighVal = cfg.type === "chicken"
+                          ? (weighedByType["chicken"] || 0) + (weighedByType["offal"] || 0)
+                          : (weighedByType[cfg.type] || 0);
+
+                        // diff = ชั่งจริง − บิลซัพ (ลบ = ได้น้อยกว่าบิล)
+                        const diff   = weighVal - billVal;
+                        const noData = weighVal === 0 && billVal > 0;
+
+                        const diffColor = noData
+                          ? "text-gray-400"
+                          : Math.abs(diff) < 0.05
+                            ? "text-green-600"
+                            : diff < 0
+                              ? "text-red-500"   // ชั่งได้น้อยกว่าบิล = แดง
+                              : "text-blue-500"; // ชั่งได้มากกว่าบิล = น้ำเงิน
+
+                        const label = cfg.type === "chicken" ? "🐔 ไก่ตอน (รวมเครื่องใน)" : `${cfg.emoji} ${cfg.label}`;
+
+                        return (
+                          <tr key={cfg.type} className="border-b last:border-0">
+                            <td className="py-2">{label}</td>
+                            <td className="text-right py-2">
+                              {billVal.toFixed(isBlood ? 0 : 2)} {unit}
+                            </td>
+                            <td className="text-right py-2 text-gray-500">
+                              {noData ? "—" : `${weighVal.toFixed(isBlood ? 0 : 2)} ${unit}`}
+                            </td>
+                            <td className={`text-right py-2 font-semibold ${diffColor}`}>
+                              {noData ? "—" : `${diff > 0 ? "+" : ""}${diff.toFixed(isBlood ? 0 : 2)} ${unit}`}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
