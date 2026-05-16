@@ -166,10 +166,11 @@ export default function ChickenBillPage() {
   const resetForm = () => {
     setDone(false);
     setWeighSession(null);
-    setItems({
+    const fresh = {
       chicken: defaultItem(), offal: defaultItem(), nsot: defaultItem(),
       nom: defaultItem(), blood: defaultItem(), kha: defaultItem(), other: defaultItem(),
-    });
+    };
+    setItems(applyPricesToItems(fresh, loadSavedPrices()));
     setBillDate(getBangkokDate());
   };
 
