@@ -250,6 +250,14 @@ export default function BBCSystemFinal() {
   };
 
   const handleOrder = async () => {
+    const gramWarningItems = Object.keys(cart).filter(id => cart[id].unit === 'กก.' && parseFloat(cart[id].qty) > 100);
+    if (gramWarningItems.length > 0) {
+      const names = gramWarningItems.map(id => `${cart[id].name}: ${cart[id].qty} กก.`).join('\n');
+      const confirmed = window.confirm(
+        `⚠️ รายการต่อไปนี้มีปริมาณ กก. สูงผิดปกติ:\n\n${names}\n\nกรอกเป็นกรัมหรือเปล่า?\n\nกด OK เพื่อส่งต่อ หรือ Cancel เพื่อกลับไปแก้ไข`
+      );
+      if (!confirmed) return;
+    }
     setLoading(true);
     const payload = {
       staffCode,
@@ -532,7 +540,10 @@ export default function BBCSystemFinal() {
   );
 
   // --- 3. Review Page (Full Screen) ---
-  if (step === 3) return (
+  if (step === 3) {
+    const gramWarnings = cartItems.filter(id => cart[id].unit === 'กก.' && parseFloat(cart[id].qty) > 100);
+
+    return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
       <div className="bg-[#ea580c] text-white p-6 shadow-lg sticky top-0 z-50">
         <div className="flex justify-between items-center max-w-md mx-auto w-full">
@@ -545,18 +556,32 @@ export default function BBCSystemFinal() {
       </div>
 
       <div className="flex-1 p-6 max-w-md mx-auto w-full space-y-4">
-        {cartItems.map(id => (
-          <div key={id} className="flex justify-between items-center border-b-2 border-slate-50 pb-4">
+        {gramWarnings.length > 0 && (
+          <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4">
+            <p className="text-amber-800 font-black text-sm mb-1">⚠️ ตรวจสอบหน่วย กก.</p>
+            <p className="text-amber-700 text-xs font-bold">รายการด้านล่างมีปริมาณสูงผิดปกติ — กรอกเป็น<span className="underline">กรัม</span>หรือเปล่า? ถ้าใช่ ให้กลับไปแก้ก่อน submit</p>
+          </div>
+        )}
+
+        {cartItems.map(id => {
+          const qty = parseFloat(cart[id].qty);
+          const isGramSuspect = cart[id].unit === 'กก.' && qty > 100;
+          return (
+          <div key={id} className={`flex justify-between items-center border-b-2 pb-4 ${isGramSuspect ? 'border-amber-200' : 'border-slate-50'}`}>
             <div>
               <p className="font-extrabold text-slate-800 text-base">{cart[id].name}</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">สต็อกเดิม: {cart[id].stock} {cart[id].unit}</p>
+              {isGramSuspect && (
+                <p className="text-[10px] text-amber-600 font-black mt-0.5">⚠️ {qty} กก. ผิดปกติ — หมายถึง {qty} กรัม ({(qty/1000).toFixed(3)} กก.) หรือเปล่า?</p>
+              )}
             </div>
             <div className="text-right">
-              <p className="text-[#ea580c] font-black text-2xl">{cart[id].qty}</p>
+              <p className={`font-black text-2xl ${isGramSuspect ? 'text-amber-500' : 'text-[#ea580c]'}`}>{cart[id].qty}</p>
               <p className="text-[10px] font-black text-slate-400 uppercase">{cart[id].unit}</p>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         <div className="pt-4">
           <label className="text-xs font-black text-slate-400 uppercase mb-2 block">หมายเหตุเพิ่มเติม</label>
@@ -585,6 +610,7 @@ export default function BBCSystemFinal() {
       </div>
     </div>
   );
+  }
 
   return null;
 }
