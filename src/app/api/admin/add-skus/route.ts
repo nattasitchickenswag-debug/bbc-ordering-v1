@@ -12,7 +12,7 @@ export async function GET() {
   // Read first 3 rows to understand structure
   const readRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A1:Z3`,
+    range: `${SHEET_NAME}!A1:Z`,
   });
 
   return NextResponse.json({ rows: readRes.data.values });
