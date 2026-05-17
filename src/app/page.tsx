@@ -567,17 +567,38 @@ export default function BBCSystemFinal() {
           const qty = parseFloat(cart[id].qty);
           const isGramSuspect = cart[id].unit === 'กก.' && qty > 100;
           return (
-          <div key={id} className={`flex justify-between items-center border-b-2 pb-4 ${isGramSuspect ? 'border-amber-200' : 'border-slate-50'}`}>
-            <div>
-              <p className="font-extrabold text-slate-800 text-base">{cart[id].name}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">สต็อกเดิม: {cart[id].stock} {cart[id].unit}</p>
-              {isGramSuspect && (
-                <p className="text-[10px] text-amber-600 font-black mt-0.5">⚠️ {qty} กก. ผิดปกติ — หมายถึง {qty} กรัม ({(qty/1000).toFixed(3)} กก.) หรือเปล่า?</p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className={`font-black text-2xl ${isGramSuspect ? 'text-amber-500' : 'text-[#ea580c]'}`}>{cart[id].qty}</p>
-              <p className="text-[10px] font-black text-slate-400 uppercase">{cart[id].unit}</p>
+          <div key={id} className={`border-b-2 pb-4 ${isGramSuspect ? 'border-amber-200' : 'border-slate-50'}`}>
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-extrabold text-slate-800 text-base">{cart[id].name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">สต็อกเดิม: {cart[id].stock} {cart[id].unit}</p>
+                {isGramSuspect && (
+                  <p className="text-[10px] text-amber-600 font-black mt-0.5">
+                    ⚠️ กรอกเป็นกรัมหรือเปล่า? ({qty} กรัม = {(qty/1000).toFixed(3)} กก.)
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <div className={`flex items-center gap-1 rounded-xl px-2 py-1 ${isGramSuspect ? 'bg-amber-50 border-2 border-amber-400' : 'bg-orange-50 border-2 border-orange-200'}`}>
+                  <button
+                    type="button"
+                    onClick={() => updateData(id, cart[id].name, cart[id].unit, 'qty', String(Math.max(0, (parseFloat(cart[id].qty) || 0) - 1)))}
+                    className={`font-black text-xl w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition-all ${isGramSuspect ? 'text-amber-600' : 'text-[#ea580c]'}`}
+                  >−</button>
+                  <input
+                    type="text" inputMode="decimal"
+                    className={`w-16 text-center font-black text-xl bg-transparent outline-none ${isGramSuspect ? 'text-amber-500' : 'text-[#ea580c]'}`}
+                    value={cart[id].qty}
+                    onChange={(e) => updateData(id, cart[id].name, cart[id].unit, 'qty', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => updateData(id, cart[id].name, cart[id].unit, 'qty', String((parseFloat(cart[id].qty) || 0) + 1))}
+                    className={`font-black text-xl w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition-all ${isGramSuspect ? 'text-amber-600' : 'text-[#ea580c]'}`}
+                  >+</button>
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase">{cart[id].unit}</p>
+              </div>
             </div>
           </div>
           );
