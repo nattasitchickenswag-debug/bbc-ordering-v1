@@ -23,12 +23,19 @@ export async function POST() {
   const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // Read header row to understand columns
-  const headerRes = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A1:Z1`,
-  });
-  const headers = headerRes.data.values?.[0] ?? [];
+  const newRows = [
+    ['C0008', 'พริกไทยขาวป่น', 'ขวด', '3.เครื่องปรุง/ซอส'],
+    ['C0009', 'น้ำจิ้มไก่ทอด', 'แกลลอน', '3.เครื่องปรุง/ซอส'],
+    ['E0012', 'ถุงร้อน 5x8', 'แพ็ค', '7.บรรจุภัณฑ์'],
+    ['E0032', 'ช้อนส้อม', 'แพ็ค', '8.วัสดุสิ้นเปลือง'],
+  ];
 
-  return NextResponse.json({ headers, message: 'Read headers. Call with ?confirm=true to append rows.' });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A:D`,
+    valueInputOption: 'RAW',
+    requestBody: { values: newRows },
+  });
+
+  return NextResponse.json({ success: true, added: newRows });
 }
